@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ReservationStatus {
+  active
+  cancelled
+}
+
+model User {
+  id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyEmail      String        @unique @map("company_email")
+  name              String
+  passwordHash      String        @map("password_hash")
+  isActive          Boolean       @default(true) @map("is_active")
+  passwordChangedAt DateTime?     @map("password_changed_at") @db.Timestamptz(6)
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  reservations      Reservation[]
+  sessions          Session[]
+
+  @@map("users")
+}
+
+model MeetingRoom {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String        @unique
+  capacity     Int?
+  location     String?
+  description  String?
+  sortOrder    Int           @default(0) @map("sort_order")
+  isActive     Boolean       @default(true) @map("is_active")
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  reservations Reservation[]
+
+  @@index([isActive, sortOrder, name], map: "meeting_rooms_active_sort_idx")
+  @@map("meeting_rooms")
+}
+
+model Reservation {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String            @map("user_id") @db.Uuid
+  meetingRoomId   String            @map("meeting_room_id") @db.Uuid
+  reservationDate DateTime          @map("reservation_date") @db.Date
+  startDatetime   DateTime          @map("start_datetime") @db.Timestamptz(6)
+  endDatetime     DateTime          @map("end_datetime") @db.Timestamptz(6)
+  colorKey        String            @map("color_key")
+  purpose         String?
+  status          ReservationStatus @default(active)
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user            User              @relation(fields: [userId], references: [id])
+  meetingRoom     MeetingRoom       @relation(fields: [meetingRoomId], references: [id])
+
+  @@index([reservationDate, meetingRoomId], map: "reservations_date_room_idx")
+  @@index([userId, reservationDate(sort: Desc)], map: "reservations_user_idx")
+  @@map("reservations")
+}
+
+model Session {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  tokenHash  String   @unique @map("token_hash")
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "sessions_user_idx")
+  @@index([expiresAt], map: "sessions_expires_at_idx")
+  @@map("sessions")
+}
