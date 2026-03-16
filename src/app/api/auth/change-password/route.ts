@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { requireCurrentSession } from "@/lib/auth/session";
+import { refreshSessionCookie, requireCurrentSession } from "@/lib/auth/session";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { prisma } from "@/lib/prisma";
 import { badRequest, serverError, unauthorized } from "@/lib/http";
+import { sanitizeUser } from "@/lib/auth/user";
 
 type ChangePasswordBody = {
   currentPassword?: string;
@@ -18,6 +19,16 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as ChangePasswordBody;
     const currentPassword = body.currentPassword?.trim();
     const newPassword = body.newPassword?.trim();
+    const currentUser = await prisma.user.findFirst({
+      where: {
+        id: session.user.id,
+        isActive: true,
+      },
+    });
+
+    if (!currentUser) {
+      return unauthorized();
+    }
 
     if (!currentPassword || !newPassword) {
       return badRequest("현재 비밀번호와 새 비밀번호를 입력해 주세요.");
@@ -29,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     const isValidPassword = await verifyPassword(
       currentPassword,
-      session.user.passwordHash,
+      currentUser.passwordHash,
     );
 
     if (!isValidPassword) {
@@ -38,13 +49,15 @@ export async function POST(request: NextRequest) {
 
     const passwordHash = await hashPassword(newPassword);
 
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
       data: {
         passwordHash,
         passwordChangedAt: new Date(),
       },
     });
+
+    await refreshSessionCookie(sanitizeUser(updatedUser), session);
 
     return NextResponse.json({ success: true });
   } catch (error) {

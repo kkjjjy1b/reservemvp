@@ -48,6 +48,7 @@
 
 ## 5. 필수 환경변수
 - `DATABASE_URL`
+- `SESSION_SECRET`
 
 추가 운영값이 생기면 이 섹션에 확장한다.
 

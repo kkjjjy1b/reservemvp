@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { requireCurrentSession } from "@/lib/auth/session";
+import { refreshSessionCookie, requireCurrentSession } from "@/lib/auth/session";
 import { sanitizeUser } from "@/lib/auth/user";
 import { badRequest, serverError, unauthorized } from "@/lib/http";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
@@ -21,6 +21,16 @@ export async function PATCH(request: NextRequest) {
     const name = body.name?.trim();
     const currentPassword = body.currentPassword?.trim();
     const newPassword = body.newPassword?.trim();
+    const currentUser = await prisma.user.findFirst({
+      where: {
+        id: session.user.id,
+        isActive: true,
+      },
+    });
+
+    if (!currentUser) {
+      return unauthorized();
+    }
 
     if (!name) {
       return badRequest("이름을 입력해 주세요.");
@@ -39,7 +49,7 @@ export async function PATCH(request: NextRequest) {
 
       const isValidPassword = await verifyPassword(
         currentPassword,
-        session.user.passwordHash,
+        currentUser.passwordHash,
       );
 
       if (!isValidPassword) {
@@ -63,6 +73,8 @@ export async function PATCH(request: NextRequest) {
     });
 
     const user = sanitizeUser(updatedUser);
+
+    await refreshSessionCookie(user, session);
 
     return NextResponse.json({
       user: {

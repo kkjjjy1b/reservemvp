@@ -1,4 +1,4 @@
-import { randomBytes, createHash } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 
 import {
@@ -6,15 +6,34 @@ import {
   SESSION_COOKIE_NAME,
   SESSION_DURATION_MS,
 } from "@/lib/auth/constants";
-import { prisma } from "@/lib/prisma";
 
-export function generateSessionToken() {
-  return randomBytes(32).toString("hex");
-}
+type SessionUser = {
+  id: string;
+  companyEmail: string;
+  name: string;
+  isActive: boolean;
+  passwordChangedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
-export function hashSessionToken(token: string) {
-  return createHash("sha256").update(token).digest("hex");
-}
+type SessionPayload = {
+  sub: string;
+  companyEmail: string;
+  name: string;
+  isActive: boolean;
+  passwordChangedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  exp: number;
+  rememberMe: boolean;
+};
+
+type CurrentSession = {
+  user: SessionUser;
+  expiresAt: Date;
+  rememberMe: boolean;
+};
 
 export function getSessionExpiryDate(rememberMe = false) {
   return new Date(
@@ -22,20 +41,83 @@ export function getSessionExpiryDate(rememberMe = false) {
   );
 }
 
-export async function createSession(userId: string, rememberMe = false) {
-  const token = generateSessionToken();
-  const tokenHash = hashSessionToken(token);
+function getSessionSecret() {
+  return process.env.SESSION_SECRET || process.env.DATABASE_URL || "reserv-mvp-dev-secret";
+}
+
+function serializePayload(payload: SessionPayload) {
+  return Buffer.from(JSON.stringify(payload)).toString("base64url");
+}
+
+function deserializePayload(value: string) {
+  return JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as SessionPayload;
+}
+
+function signPayload(serializedPayload: string) {
+  return createHmac("sha256", getSessionSecret()).update(serializedPayload).digest("base64url");
+}
+
+function createSignedToken(payload: SessionPayload) {
+  const serializedPayload = serializePayload(payload);
+  const signature = signPayload(serializedPayload);
+  return `${serializedPayload}.${signature}`;
+}
+
+function verifySignedToken(token: string) {
+  const [serializedPayload, signature] = token.split(".");
+
+  if (!serializedPayload || !signature) {
+    return null;
+  }
+
+  const expectedSignature = signPayload(serializedPayload);
+  const signatureBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expectedSignature);
+
+  if (
+    signatureBuffer.length !== expectedBuffer.length ||
+    !timingSafeEqual(signatureBuffer, expectedBuffer)
+  ) {
+    return null;
+  }
+
+  try {
+    return deserializePayload(serializedPayload);
+  } catch {
+    return null;
+  }
+}
+
+function buildSessionPayload(user: SessionUser, expiresAt: Date, rememberMe: boolean): SessionPayload {
+  return {
+    sub: user.id,
+    companyEmail: user.companyEmail,
+    name: user.name,
+    isActive: user.isActive,
+    passwordChangedAt: user.passwordChangedAt ? user.passwordChangedAt.toISOString() : null,
+    createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString(),
+    exp: Math.floor(expiresAt.getTime() / 1000),
+    rememberMe,
+  };
+}
+
+function deserializeSessionUser(payload: SessionPayload): SessionUser {
+  return {
+    id: payload.sub,
+    companyEmail: payload.companyEmail,
+    name: payload.name,
+    isActive: payload.isActive,
+    passwordChangedAt: payload.passwordChangedAt ? new Date(payload.passwordChangedAt) : null,
+    createdAt: new Date(payload.createdAt),
+    updatedAt: new Date(payload.updatedAt),
+  };
+}
+
+export async function createSession(user: SessionUser, rememberMe = false) {
   const expiresAt = getSessionExpiryDate(rememberMe);
-
-  const session = await prisma.session.create({
-    data: {
-      userId,
-      tokenHash,
-      expiresAt,
-    },
-  });
-
-  return { session, token, expiresAt };
+  const token = createSignedToken(buildSessionPayload(user, expiresAt, rememberMe));
+  return { token, expiresAt };
 }
 
 export async function setSessionCookie(
@@ -78,31 +160,29 @@ export async function getCurrentSession() {
     return null;
   }
 
-  const tokenHash = hashSessionToken(token);
-  const session = await prisma.session.findUnique({
-    where: { tokenHash },
-    include: {
-      user: true,
-    },
-  });
+  const payload = verifySignedToken(token);
 
-  if (!session) {
-    return null;
-  }
-
-  if (session.expiresAt <= new Date()) {
-    await prisma.session.delete({
-      where: { id: session.id },
-    });
+  if (!payload) {
     await clearSessionCookie();
     return null;
   }
 
-  if (!session.user.isActive) {
+  const expiresAt = new Date(payload.exp * 1000);
+
+  if (expiresAt <= new Date()) {
+    await clearSessionCookie();
     return null;
   }
 
-  return session;
+  if (!payload.isActive) {
+    return null;
+  }
+
+  return {
+    user: deserializeSessionUser(payload),
+    expiresAt,
+    rememberMe: payload.rememberMe,
+  } satisfies CurrentSession;
 }
 
 export async function requireCurrentSession() {
@@ -116,18 +196,12 @@ export async function requireCurrentSession() {
 }
 
 export async function deleteCurrentSession() {
-  const token = await readSessionTokenFromCookie();
-
-  if (!token) {
-    await clearSessionCookie();
-    return;
-  }
-
-  const tokenHash = hashSessionToken(token);
-
-  await prisma.session.deleteMany({
-    where: { tokenHash },
-  });
-
   await clearSessionCookie();
+}
+
+export async function refreshSessionCookie(user: SessionUser, currentSession: CurrentSession) {
+  const token = createSignedToken(
+    buildSessionPayload(user, currentSession.expiresAt, currentSession.rememberMe),
+  );
+  await setSessionCookie(token, currentSession.expiresAt, currentSession.rememberMe);
 }

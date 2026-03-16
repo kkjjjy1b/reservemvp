@@ -6,6 +6,7 @@
 - `project-root` Git 원격 저장소 URL 확보
 - 기본 배포 브랜치 결정 (`main` 권장)
 - 운영 `DATABASE_URL` 확보
+- 운영 `SESSION_SECRET` 확보
 - 배포 대상 플랫폼 결정
 - 운영 도메인 결정
 

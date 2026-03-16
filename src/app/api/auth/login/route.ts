@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       return unauthorized("이메일 또는 비밀번호가 올바르지 않습니다.");
     }
 
-    const { token, expiresAt } = await createSession(user.id, rememberMe);
+    const { token, expiresAt } = await createSession(sanitizeUser(user), rememberMe);
     await setSessionCookie(token, expiresAt, rememberMe);
 
     return NextResponse.json({
