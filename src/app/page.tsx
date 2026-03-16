@@ -1,5 +1,6 @@
 import { TimelinePage } from "@/components/timeline/timeline-page";
-import { getTimelinePageData } from "@/components/timeline/timeline-page-data";
+import { getCurrentSession } from "@/lib/auth/session";
+import { getKstDateKey, isValidDateKey } from "@/lib/reservations/datetime";
 
 type HomePageProps = {
   searchParams?: Promise<{
@@ -9,13 +10,15 @@ type HomePageProps = {
 
 export default async function HomePage({ searchParams }: HomePageProps) {
   const params = searchParams ? await searchParams : undefined;
-  const { selectedDate, timeline, userName } = await getTimelinePageData(params?.date);
+  const selectedDate =
+    params?.date && isValidDateKey(params.date) ? params.date : getKstDateKey(new Date());
+  const session = await getCurrentSession();
 
   return (
     <TimelinePage
-      data={timeline}
       selectedDate={selectedDate}
-      userName={userName}
+      userName={session?.user.name ?? null}
+      isAuthenticated={Boolean(session)}
     />
   );
 }

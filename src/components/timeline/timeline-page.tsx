@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ReservationCreateModal } from "@/components/timeline/reservation-create-modal";
@@ -21,9 +20,9 @@ import type {
 } from "@/lib/reservations/types";
 
 type TimelinePageProps = {
-  data: TimelineResponse | null;
   selectedDate: string;
   userName: string | null;
+  isAuthenticated: boolean;
 };
 
 type SlotDescriptor = {
@@ -48,13 +47,14 @@ const ROOM_COLUMN_MIN_WIDTH_PX = 288;
 const SLOT_HEIGHT_PX = 54;
 
 export function TimelinePage({
-  data,
   selectedDate,
   userName,
+  isAuthenticated,
 }: TimelinePageProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const timelineScrollRef = useRef<HTMLDivElement | null>(null);
+  const [currentDate, setCurrentDate] = useState(selectedDate);
+  const [timelineData, setTimelineData] = useState<TimelineResponse | null>(null);
+  const [isTimelineLoading, setIsTimelineLoading] = useState(isAuthenticated);
   const [selectedSlot, setSelectedSlot] = useState<EmptySlotSelection | null>(null);
   const [selectedReservationId, setSelectedReservationId] = useState<string | null>(null);
   const [selectedReservationDetail, setSelectedReservationDetail] =
@@ -62,15 +62,15 @@ export function TimelinePage({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
 
-  const slots = buildSlots(data?.timeline.slotCount ?? 36);
-  const isTodayView = isToday(selectedDate);
+  const slots = buildSlots(timelineData?.timeline.slotCount ?? 36);
+  const isTodayView = isToday(currentDate);
   const currentLineOffsetPx = useMemo(() => {
-    if (!data || !isTodayView) {
+    if (!timelineData || !isTodayView) {
       return null;
     }
 
     return getCurrentTimelineOffsetPx(now);
-  }, [data, isTodayView, now]);
+  }, [timelineData, isTodayView, now]);
   const currentTimeLabel = useMemo(() => getCurrentTimeLabel(now), [now]);
 
   useEffect(() => {
@@ -88,7 +88,7 @@ export function TimelinePage({
   }, [toastMessage]);
 
   useEffect(() => {
-    if (!data || !isTodayView || currentLineOffsetPx === null || !timelineScrollRef.current) {
+    if (!timelineData || !isTodayView || currentLineOffsetPx === null || !timelineScrollRef.current) {
       return;
     }
 
@@ -99,22 +99,107 @@ export function TimelinePage({
       top: targetScrollTop,
       behavior: "smooth",
     });
-  }, [currentLineOffsetPx, data, isTodayView, selectedDate]);
+  }, [currentDate, currentLineOffsetPx, isTodayView, timelineData]);
+
+  useEffect(() => {
+    setCurrentDate(selectedDate);
+  }, [selectedDate]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setTimelineData(null);
+      setIsTimelineLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadTimeline() {
+      setIsTimelineLoading(true);
+
+      try {
+        const response = await fetch(`/api/reservations?date=${currentDate}`, {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          if (!cancelled) {
+            setTimelineData(null);
+          }
+          return;
+        }
+
+        const payload = (await response.json()) as TimelineResponse;
+
+        if (!cancelled) {
+          setTimelineData(payload);
+        }
+      } catch {
+        if (!cancelled) {
+          setTimelineData(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsTimelineLoading(false);
+        }
+      }
+    }
+
+    loadTimeline();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentDate, isAuthenticated]);
 
   function updateDate(nextDate: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("date", nextDate);
-    router.replace(`/?${params.toString()}`);
+    setSelectedSlot(null);
+    setSelectedReservationId(null);
+    setSelectedReservationDetail(null);
+    setCurrentDate(nextDate);
+    window.history.replaceState({}, "", `/?date=${nextDate}`);
   }
 
   function shiftDate(days: number) {
-    const nextDate = new Date(`${selectedDate}T00:00:00+09:00`);
+    const nextDate = new Date(`${currentDate}T00:00:00+09:00`);
     nextDate.setDate(nextDate.getDate() + days);
     updateDate(toDateInputValue(nextDate));
   }
 
   function jumpToToday() {
     updateDate(getTodayDateKey());
+  }
+
+  function refreshTimeline(message?: string) {
+    setSelectedSlot(null);
+    setSelectedReservationId(null);
+    setSelectedReservationDetail(null);
+    setTimelineData(null);
+    setIsTimelineLoading(true);
+    if (message) {
+      setToastMessage(message);
+    }
+    void (async () => {
+      try {
+        const response = await fetch(`/api/reservations?date=${currentDate}`, {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          setTimelineData(null);
+          return;
+        }
+
+        const payload = (await response.json()) as TimelineResponse;
+        setTimelineData(payload);
+      } finally {
+        setIsTimelineLoading(false);
+      }
+    })();
   }
 
   return (
@@ -161,7 +246,7 @@ export function TimelinePage({
               </button>
               <input
                 type="date"
-                value={selectedDate}
+                value={currentDate}
                 onChange={(event) => updateDate(event.target.value)}
                 className="rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm text-[#37352f] outline-none transition focus:border-black/20"
               />
@@ -176,7 +261,7 @@ export function TimelinePage({
           </div>
         </header>
 
-        {!data ? (
+        {!isAuthenticated ? (
           <section className="px-6 py-12 text-center md:px-8">
             <p className="text-lg font-semibold text-[#2f3437]">
               로그인 후 타임라인을 확인할 수 있습니다.
@@ -192,6 +277,36 @@ export function TimelinePage({
               로그인 화면으로 이동
             </Link>
           </section>
+        ) : isTimelineLoading && !timelineData ? (
+          <section className="px-6 py-12 md:px-8">
+            <div className="mx-auto max-w-[680px] rounded-[24px] border border-black/10 bg-[#fcfcfb] px-6 py-10 text-center">
+              <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-black/10 border-t-[#2f3437]" />
+              <p className="mt-5 text-lg font-semibold text-[#2f3437]">
+                타임라인을 불러오는 중입니다.
+              </p>
+              <p className="mt-2 text-sm text-[#6b6a67]">
+                로그인은 완료되었고, 오늘 예약 현황을 불러오고 있습니다.
+              </p>
+            </div>
+          </section>
+        ) : !timelineData ? (
+          <section className="px-6 py-12 md:px-8">
+            <div className="mx-auto max-w-[680px] rounded-[24px] border border-[#d9735b]/20 bg-[#fff7f5] px-6 py-10 text-center">
+              <p className="text-lg font-semibold text-[#2f3437]">
+                타임라인을 불러오지 못했습니다.
+              </p>
+              <p className="mt-2 text-sm text-[#6b6a67]">
+                잠시 후 다시 시도하거나 날짜를 다시 선택해 주세요.
+              </p>
+              <button
+                type="button"
+                onClick={() => refreshTimeline()}
+                className="mt-5 inline-flex rounded-xl border border-black/10 bg-white px-4 py-3 text-sm font-medium text-[#37352f] transition hover:bg-black/[0.03]"
+              >
+                다시 시도
+              </button>
+            </div>
+          </section>
         ) : (
           <section className="p-3 md:p-5">
             <div className="rounded-[20px] border border-black/10 bg-[#fcfcfb]">
@@ -201,7 +316,7 @@ export function TimelinePage({
                   style={{
                     minWidth:
                       TIME_COLUMN_WIDTH_PX +
-                      data.rooms.length * ROOM_COLUMN_MIN_WIDTH_PX,
+                      timelineData.rooms.length * ROOM_COLUMN_MIN_WIDTH_PX,
                   }}
                 >
                   <div
@@ -217,12 +332,12 @@ export function TimelinePage({
                       <div
                         className="sticky top-0 z-30 grid border-b border-black/10 bg-[#fcfcfb]"
                         style={{
-                          gridTemplateColumns: `${TIME_COLUMN_WIDTH_PX}px repeat(${data.rooms.length}, minmax(${ROOM_COLUMN_MIN_WIDTH_PX}px, 1fr))`,
+                          gridTemplateColumns: `${TIME_COLUMN_WIDTH_PX}px repeat(${timelineData.rooms.length}, minmax(${ROOM_COLUMN_MIN_WIDTH_PX}px, 1fr))`,
                         }}
                       >
                         <div className="border-r border-black/10 px-4 py-5" />
 
-                        {data.rooms.map((room) => {
+                        {timelineData.rooms.map((room) => {
                           const roomMeta = getStableRoomMeta(room.id);
                           const roomColor = getReservationColorTheme(roomMeta.colorKey);
 
@@ -277,7 +392,7 @@ export function TimelinePage({
                       <div
                         className="grid"
                         style={{
-                          gridTemplateColumns: `${TIME_COLUMN_WIDTH_PX}px repeat(${data.rooms.length}, minmax(${ROOM_COLUMN_MIN_WIDTH_PX}px, 1fr))`,
+                          gridTemplateColumns: `${TIME_COLUMN_WIDTH_PX}px repeat(${timelineData.rooms.length}, minmax(${ROOM_COLUMN_MIN_WIDTH_PX}px, 1fr))`,
                         }}
                       >
                         <div className="border-r border-black/10 bg-[#fcfcfb]">
@@ -296,11 +411,11 @@ export function TimelinePage({
                           ))}
                         </div>
 
-                        {data.rooms.map((room) => (
+                        {timelineData.rooms.map((room) => (
                           <TimelineRoomColumn
                             key={room.id}
                             room={room}
-                            date={data.date}
+                            date={timelineData.date}
                             slots={slots}
                             onSlotClick={(slot) => {
                               setSelectedReservationId(null);
@@ -332,21 +447,19 @@ export function TimelinePage({
           setSelectedReservationDetail(null);
         }}
         onUpdated={(message) => {
-          router.refresh();
-          setToastMessage(message);
+          refreshTimeline(message);
         }}
       />
       <ReservationCreateModal
         selection={selectedSlot}
         roomReservations={
           selectedSlot
-            ? data?.rooms.find((room) => room.id === selectedSlot.roomId)?.reservations ?? []
+            ? timelineData?.rooms.find((room) => room.id === selectedSlot.roomId)?.reservations ?? []
             : []
         }
         onClose={() => setSelectedSlot(null)}
         onCreated={(message) => {
-          router.refresh();
-          setToastMessage(message);
+          refreshTimeline(message);
         }}
       />
     </main>
