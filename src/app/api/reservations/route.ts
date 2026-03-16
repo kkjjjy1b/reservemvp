@@ -28,6 +28,8 @@ type CreateReservationBody = {
   colorKey?: string;
 };
 
+export const preferredRegion = "icn1";
+
 export async function GET(request: NextRequest) {
   try {
     const session = await requireCurrentSession();

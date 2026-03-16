@@ -12,6 +12,8 @@ type UpdateProfileBody = {
   newPassword?: string;
 };
 
+export const preferredRegion = "icn1";
+
 export async function PATCH(request: NextRequest) {
   try {
     const session = await requireCurrentSession();

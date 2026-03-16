@@ -11,6 +11,8 @@ type LoginBody = {
   rememberMe?: boolean;
 };
 
+export const preferredRegion = "icn1";
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as LoginBody;

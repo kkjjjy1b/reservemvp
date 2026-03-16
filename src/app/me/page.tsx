@@ -7,6 +7,8 @@ import { sanitizeUser } from "@/lib/auth/user";
 import { getMyReservations } from "@/lib/reservations/service";
 import { serializeMyReservation } from "@/lib/reservations/serialize";
 
+export const preferredRegion = "icn1";
+
 export default async function MyPage() {
   const session = await getCurrentSession();
 

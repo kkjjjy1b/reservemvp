@@ -5,6 +5,8 @@ import { serverError, unauthorized } from "@/lib/http";
 import { getMyReservations } from "@/lib/reservations/service";
 import { serializeMyReservation } from "@/lib/reservations/serialize";
 
+export const preferredRegion = "icn1";
+
 export async function GET() {
   try {
     const session = await requireCurrentSession();

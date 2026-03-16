@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { serializeMutationReservation } from "@/lib/reservations/serialize";
 import { getReservationById } from "@/lib/reservations/service";
 
+export const preferredRegion = "icn1";
+
 type ReservationCancelContext = {
   params: Promise<{
     id: string;

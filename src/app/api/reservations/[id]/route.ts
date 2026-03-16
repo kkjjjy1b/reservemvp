@@ -13,6 +13,8 @@ import {
   validateReservationUpdateWindow,
 } from "@/lib/reservations/validation";
 
+export const preferredRegion = "icn1";
+
 type ReservationRouteContext = {
   params: Promise<{
     id: string;

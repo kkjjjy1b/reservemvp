@@ -8,6 +8,8 @@ type HomePageProps = {
   }>;
 };
 
+export const preferredRegion = "icn1";
+
 export default async function HomePage({ searchParams }: HomePageProps) {
   const params = searchParams ? await searchParams : undefined;
   const selectedDate =
