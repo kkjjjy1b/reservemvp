@@ -163,14 +163,12 @@ export async function getCurrentSession() {
   const payload = verifySignedToken(token);
 
   if (!payload) {
-    await clearSessionCookie();
     return null;
   }
 
   const expiresAt = new Date(payload.exp * 1000);
 
   if (expiresAt <= new Date()) {
-    await clearSessionCookie();
     return null;
   }
 
