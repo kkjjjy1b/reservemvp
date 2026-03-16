@@ -525,7 +525,7 @@ export function AccountPage({ user, initialReservations }: AccountPageProps) {
       <ReservationDetailModal
         reservationId={selectedReservationId}
         onClose={() => setSelectedReservationId(null)}
-        onUpdated={(message) => {
+        onUpdated={({ message }) => {
           refreshReservations(message);
         }}
       />

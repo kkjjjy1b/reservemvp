@@ -101,6 +101,7 @@ export function serializeMutationReservation(reservation: ReservationWithRelatio
       : undefined,
     meetingRoom: reservation.meetingRoom
       ? {
+          id: reservation.meetingRoom.id,
           name: reservation.meetingRoom.name,
         }
       : undefined,

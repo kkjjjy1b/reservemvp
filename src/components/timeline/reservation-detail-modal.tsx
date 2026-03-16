@@ -8,6 +8,7 @@ import {
 } from "@/lib/reservations/client-policy";
 import { getReservationColorTheme } from "@/lib/reservations/colors";
 import type {
+  MutationReservation,
   ReservationDetailResponse,
   TimelineReservation,
 } from "@/lib/reservations/types";
@@ -16,7 +17,11 @@ type ReservationDetailModalProps = {
   reservationId: string | null;
   initialDetail?: ReservationDetailResponse | null;
   onClose: () => void;
-  onUpdated: (message: string) => void;
+  onUpdated: (params: {
+    message: string;
+    action: "update" | "cancel";
+    reservation: MutationReservation;
+  }) => void;
 };
 
 type ReservationFormState = {
@@ -250,16 +255,28 @@ export function ReservationDetailModal({
         }),
       });
 
-      const payload = (await response.json()) as { message?: string };
+      const payload = (await response.json()) as {
+        message?: string;
+        reservation?: MutationReservation;
+      };
 
       if (!response.ok) {
         setErrorMessage(payload.message ?? "예약 수정에 실패했습니다.");
         return;
       }
 
+      if (!payload.reservation) {
+        setErrorMessage("예약 수정 결과를 확인할 수 없습니다.");
+        return;
+      }
+
       setEditMode(false);
       setReloadKey((value) => value + 1);
-      onUpdated("예약이 수정되었습니다.");
+      onUpdated({
+        message: "예약이 수정되었습니다.",
+        action: "update",
+        reservation: payload.reservation,
+      });
     });
   }
 
@@ -275,7 +292,10 @@ export function ReservationDetailModal({
         credentials: "include",
       });
 
-      const payload = (await response.json()) as { message?: string };
+      const payload = (await response.json()) as {
+        message?: string;
+        reservation?: MutationReservation;
+      };
 
       if (!response.ok) {
         setErrorMessage(payload.message ?? "예약 취소에 실패했습니다.");
@@ -283,8 +303,18 @@ export function ReservationDetailModal({
         return;
       }
 
+      if (!payload.reservation) {
+        setErrorMessage("예약 취소 결과를 확인할 수 없습니다.");
+        setShowCancelConfirm(false);
+        return;
+      }
+
       setShowCancelConfirm(false);
-      onUpdated("예약이 취소되었습니다.");
+      onUpdated({
+        message: "예약이 취소되었습니다.",
+        action: "cancel",
+        reservation: payload.reservation,
+      });
       onClose();
     });
   }

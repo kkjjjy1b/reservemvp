@@ -13,6 +13,7 @@ import {
 } from "@/lib/reservations/colors";
 import type {
   EmptySlotSelection,
+  MutationReservation,
   TimelineReservation,
 } from "@/lib/reservations/types";
 
@@ -20,7 +21,7 @@ type ReservationCreateModalProps = {
   selection: EmptySlotSelection | null;
   roomReservations: TimelineReservation[];
   onClose: () => void;
-  onCreated: (message: string) => void;
+  onCreated: (message: string, reservation: MutationReservation) => void;
 };
 
 type ReservationCreateForm = {
@@ -110,14 +111,22 @@ export function ReservationCreateModal({
         }),
       });
 
-      const payload = (await response.json()) as { message?: string };
+      const payload = (await response.json()) as {
+        message?: string;
+        reservation?: MutationReservation;
+      };
 
       if (!response.ok) {
         setErrorMessage(payload.message ?? "예약 생성에 실패했습니다.");
         return;
       }
 
-      onCreated("예약이 생성되었습니다.");
+      if (!payload.reservation) {
+        setErrorMessage("예약 생성 결과를 확인할 수 없습니다.");
+        return;
+      }
+
+      onCreated("예약이 생성되었습니다.", payload.reservation);
       onClose();
     });
   }

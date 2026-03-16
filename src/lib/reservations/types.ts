@@ -66,9 +66,38 @@ export type ReservationDetail = {
   };
 };
 
+export type MeetingRoomsResponse = {
+  meetingRooms: Array<{
+    id: string;
+    name: string;
+    capacity: number | null;
+    location: string | null;
+    description: string | null;
+  }>;
+};
+
 export type ReservationDetailResponse = {
   reservation: ReservationDetail;
   canEdit: boolean;
   canCancel: boolean;
   isMine: boolean;
+};
+
+export type MutationReservation = {
+  id: string;
+  colorKey: ReservationColorKey;
+  reservationDate: string;
+  startDatetime: string;
+  endDatetime: string;
+  startTime: string;
+  endTime: string;
+  purpose: string | null;
+  status: "active" | "cancelled";
+  user?: {
+    name: string;
+  };
+  meetingRoom?: {
+    id?: string;
+    name: string;
+  };
 };
