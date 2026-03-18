@@ -46,6 +46,7 @@ type TimelineRoomColumnProps = {
 };
 
 const TIME_COLUMN_WIDTH_PX = 96;
+const MOBILE_TIME_COLUMN_WIDTH_PX = 72;
 const ROOM_COLUMN_MIN_WIDTH_PX = 288;
 const SLOT_HEIGHT_PX = 54;
 
@@ -55,16 +56,20 @@ export function TimelinePage({
   isAuthenticated,
 }: TimelinePageProps) {
   const timelineScrollRef = useRef<HTMLDivElement | null>(null);
+  const mobileTimelineScrollRef = useRef<HTMLDivElement | null>(null);
+  const desktopTimelineHeaderRef = useRef<HTMLDivElement | null>(null);
   const [currentDate, setCurrentDate] = useState(selectedDate);
   const [roomShells, setRoomShells] = useState<TimelineRoom[]>([]);
   const [timelineData, setTimelineData] = useState<TimelineResponse | null>(null);
   const [isTimelineLoading, setIsTimelineLoading] = useState(isAuthenticated);
+  const [selectedMobileRoomId, setSelectedMobileRoomId] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<EmptySlotSelection | null>(null);
   const [selectedReservationId, setSelectedReservationId] = useState<string | null>(null);
   const [selectedReservationDetail, setSelectedReservationDetail] =
     useState<ReservationDetailResponse | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
+  const [desktopHeaderHeight, setDesktopHeaderHeight] = useState(0);
 
   const slots = buildSlots(timelineData?.timeline.slotCount ?? 36);
   const isTodayView = isToday(currentDate);
@@ -83,6 +88,38 @@ export function TimelinePage({
   }, []);
 
   useEffect(() => {
+    const header = desktopTimelineHeaderRef.current;
+
+    if (!header) {
+      return;
+    }
+
+    function updateDesktopHeaderHeight() {
+      const nextHeader = desktopTimelineHeaderRef.current;
+
+      if (!nextHeader) {
+        return;
+      }
+
+      setDesktopHeaderHeight(nextHeader.getBoundingClientRect().height);
+    }
+
+    updateDesktopHeaderHeight();
+
+    const resizeObserver = new ResizeObserver(() => {
+      updateDesktopHeaderHeight();
+    });
+
+    resizeObserver.observe(header);
+    window.addEventListener("resize", updateDesktopHeaderHeight);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateDesktopHeaderHeight);
+    };
+  }, [timelineData]);
+
+  useEffect(() => {
     if (!toastMessage) {
       return;
     }
@@ -98,6 +135,20 @@ export function TimelinePage({
 
     const container = timelineScrollRef.current;
     const targetScrollTop = Math.max(currentLineOffsetPx - container.clientHeight * 0.28, 0);
+
+    container.scrollTo({
+      top: targetScrollTop,
+      behavior: "smooth",
+    });
+  }, [currentDate, currentLineOffsetPx, isTodayView, timelineData]);
+
+  useEffect(() => {
+    if (!timelineData || !isTodayView || currentLineOffsetPx === null || !mobileTimelineScrollRef.current) {
+      return;
+    }
+
+    const container = mobileTimelineScrollRef.current;
+    const targetScrollTop = Math.max(currentLineOffsetPx - container.clientHeight * 0.32, 0);
 
     container.scrollTo({
       top: targetScrollTop,
@@ -308,6 +359,19 @@ export function TimelinePage({
 
   const visibleRooms = timelineData?.rooms ?? roomShells;
   const activeDate = timelineData?.date ?? currentDate;
+  const selectedMobileRoom =
+    visibleRooms.find((room) => room.id === selectedMobileRoomId) ?? visibleRooms[0] ?? null;
+
+  useEffect(() => {
+    if (visibleRooms.length === 0) {
+      setSelectedMobileRoomId(null);
+      return;
+    }
+
+    setSelectedMobileRoomId((current) =>
+      current && visibleRooms.some((room) => room.id === current) ? current : visibleRooms[0].id,
+    );
+  }, [visibleRooms]);
 
   return (
     <main className="min-h-screen bg-[#f7f7f5] px-3 py-3 md:px-5 md:py-5">
@@ -399,9 +463,42 @@ export function TimelinePage({
         ) : !timelineData ? (
           <section className="p-3 md:p-5">
             <div className="rounded-[20px] border border-black/10 bg-[#fcfcfb]">
+              <div className="border-b border-black/10 px-4 py-4 md:hidden">
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {visibleRooms.map((room) => (
+                    <button
+                      key={room.id}
+                      type="button"
+                      onClick={() => setSelectedMobileRoomId(room.id)}
+                      className={`rounded-full border px-3 py-2 text-xs font-medium whitespace-nowrap transition ${
+                        room.id === selectedMobileRoom?.id
+                          ? "border-[#2f3437] bg-[#2f3437] text-white"
+                          : "border-black/10 bg-white text-[#6b6a67]"
+                      }`}
+                    >
+                      {room.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="px-4 py-8 text-center md:hidden">
+                <p className="text-lg font-semibold text-[#2f3437]">
+                  예약 현황을 불러오는 중입니다.
+                </p>
+                <p className="mt-2 text-sm text-[#6b6a67]">
+                  모바일에서는 회의실별 세로 타임라인으로 표시합니다.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => refreshTimeline()}
+                  className="mt-5 inline-flex rounded-xl border border-black/10 bg-white px-4 py-3 text-sm font-medium text-[#37352f] transition hover:bg-black/[0.03]"
+                >
+                  다시 시도
+                </button>
+              </div>
               <div className="overflow-x-auto rounded-[20px]">
                 <div
-                  className="min-w-[1220px]"
+                  className="hidden min-w-[1220px] md:block"
                   style={{
                     minWidth:
                       TIME_COLUMN_WIDTH_PX +
@@ -453,9 +550,118 @@ export function TimelinePage({
         ) : (
           <section className="p-3 md:p-5">
             <div className="rounded-[20px] border border-black/10 bg-[#fcfcfb]">
+              <div className="border-b border-black/10 px-4 py-4 md:hidden">
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {timelineData.rooms.map((room) => (
+                    <button
+                      key={room.id}
+                      type="button"
+                      onClick={() => setSelectedMobileRoomId(room.id)}
+                      className={`rounded-full border px-3 py-2 text-xs font-medium whitespace-nowrap transition ${
+                        room.id === selectedMobileRoom?.id
+                          ? "border-[#2f3437] bg-[#2f3437] text-white"
+                          : "border-black/10 bg-white text-[#6b6a67]"
+                      }`}
+                    >
+                      {room.name}
+                    </button>
+                  ))}
+                </div>
+                {selectedMobileRoom && (
+                  <div className="mt-3 flex items-center justify-between rounded-2xl border border-black/10 bg-white px-4 py-3">
+                    <div>
+                      <p className="text-sm font-semibold text-[#2f3437]">{selectedMobileRoom.name}</p>
+                      <p className="mt-1 text-xs text-[#787774]">
+                        {selectedMobileRoom.capacity !== null ? `${selectedMobileRoom.capacity}명` : "-"}
+                      </p>
+                    </div>
+                    <span className="text-xs text-[#9b9a97]">세로 보기</span>
+                  </div>
+                )}
+              </div>
+              {selectedMobileRoom && (
+                <div className="md:hidden">
+                  <div
+                    ref={mobileTimelineScrollRef}
+                    className="overflow-y-auto"
+                    style={{
+                      height: "calc(100vh - 360px)",
+                      minHeight: "480px",
+                    }}
+                  >
+                    <div className="relative">
+                      {currentLineOffsetPx !== null && (
+                        <>
+                          <div
+                            className="pointer-events-none absolute z-20"
+                            style={{
+                              top: `${currentLineOffsetPx}px`,
+                              left: `${MOBILE_TIME_COLUMN_WIDTH_PX - 1}px`,
+                              right: 0,
+                            }}
+                          >
+                            <div className="relative h-[2px] bg-[#68aef8]/80">
+                              <span className="absolute -left-[8px] top-1/2 h-3.5 w-3.5 -translate-y-1/2 rounded-full border-2 border-white bg-[#68aef8] shadow-[0_0_0_1px_rgba(104,174,248,0.32)]" />
+                            </div>
+                          </div>
+                          <div
+                            className="pointer-events-none absolute left-0 z-20 flex items-center justify-end pr-3"
+                            style={{
+                              top: `${currentLineOffsetPx}px`,
+                              width: `${MOBILE_TIME_COLUMN_WIDTH_PX}px`,
+                              transform: "translateY(-50%)",
+                            }}
+                          >
+                            <span className="rounded-full border border-[#bfdbfe] bg-white px-2 py-1 text-[10px] font-medium text-[#3b82f6] shadow-sm">
+                              {currentTimeLabel}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                      <div
+                        className="grid"
+                        style={{
+                          gridTemplateColumns: `${MOBILE_TIME_COLUMN_WIDTH_PX}px minmax(0, 1fr)`,
+                        }}
+                      >
+                        <div className="border-r border-black/10 bg-[#fcfcfb]">
+                          {slots.map((slot) => (
+                            <div
+                              key={slot.index}
+                              className="relative border-b border-black/[0.06] px-2"
+                              style={{ height: `${SLOT_HEIGHT_PX}px` }}
+                            >
+                              {slot.isHour && (
+                                <span className="absolute -top-3 right-2 bg-[#fcfcfb] px-1 text-[11px] font-medium text-[#6b6a67]">
+                                  {slot.time}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <TimelineRoomColumn
+                          room={selectedMobileRoom}
+                          date={activeDate}
+                          slots={slots}
+                          onSlotClick={(slot) => {
+                            setSelectedReservationId(null);
+                            setSelectedReservationDetail(null);
+                            setSelectedSlot(slot);
+                          }}
+                          onReservationClick={(reservationId, detail) => {
+                            setSelectedSlot(null);
+                            setSelectedReservationDetail(detail);
+                            setSelectedReservationId(reservationId);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="overflow-x-auto rounded-[20px]">
                 <div
-                  className="min-w-[1220px]"
+                  className="hidden min-w-[1220px] md:block"
                   style={{
                     minWidth:
                       TIME_COLUMN_WIDTH_PX +
@@ -473,6 +679,7 @@ export function TimelinePage({
                   >
                     <div className="relative">
                       <div
+                        ref={desktopTimelineHeaderRef}
                         className="sticky top-0 z-30 grid border-b border-black/10 bg-[#fcfcfb]"
                         style={{
                           gridTemplateColumns: `${TIME_COLUMN_WIDTH_PX}px repeat(${timelineData.rooms.length}, minmax(${ROOM_COLUMN_MIN_WIDTH_PX}px, 1fr))`,
@@ -508,7 +715,7 @@ export function TimelinePage({
                           <div
                             className="pointer-events-none absolute z-20"
                             style={{
-                              top: `${currentLineOffsetPx}px`,
+                              top: `${desktopHeaderHeight + currentLineOffsetPx}px`,
                               left: `${TIME_COLUMN_WIDTH_PX - 1}px`,
                               right: 0,
                             }}
@@ -520,7 +727,7 @@ export function TimelinePage({
                           <div
                             className="pointer-events-none absolute left-0 z-20 flex items-center justify-end pr-5"
                             style={{
-                              top: `${currentLineOffsetPx}px`,
+                              top: `${desktopHeaderHeight + currentLineOffsetPx}px`,
                               width: `${TIME_COLUMN_WIDTH_PX}px`,
                               transform: "translateY(-50%)",
                             }}
