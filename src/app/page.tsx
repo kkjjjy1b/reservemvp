@@ -25,6 +25,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   return (
     <TimelinePage
       selectedDate={selectedDate}
+      userId={session.user.id}
       userName={session.user.name}
       isAuthenticated
     />

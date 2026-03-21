@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { AvatarStack } from "@/components/timeline/avatar-stack";
 import { ReservationCreateModal } from "@/components/timeline/reservation-create-modal";
 import { ReservationDetailModal } from "@/components/timeline/reservation-detail-modal";
 import { StatusToast } from "@/components/ui/status-toast";
@@ -24,6 +25,7 @@ import type {
 
 type TimelinePageProps = {
   selectedDate: string;
+  userId?: string | null;
   userName: string | null;
   isAuthenticated: boolean;
 };
@@ -52,6 +54,7 @@ const SLOT_HEIGHT_PX = 54;
 
 export function TimelinePage({
   selectedDate,
+  userId = null,
   userName,
   isAuthenticated,
 }: TimelinePageProps) {
@@ -803,6 +806,7 @@ export function TimelinePage({
       />
       <ReservationCreateModal
         selection={selectedSlot}
+        currentUserId={userId}
         roomReservations={
           selectedSlot
             ? timelineData?.rooms.find((room) => room.id === selectedSlot.roomId)?.reservations ?? []
@@ -836,8 +840,13 @@ function toTimelineReservation(reservation: MutationReservation, currentUserName
     endSlotIndex: startSlotIndex + slotSpan,
     slotSpan,
     user: {
+      id: reservation.user?.id,
       name: reservation.user?.name ?? currentUserName ?? "나",
+      companyEmail: reservation.user?.companyEmail,
+      avatarUrl: reservation.user?.avatarUrl,
+      avatarSeed: reservation.user?.avatarSeed,
     },
+    participants: reservation.participants ?? [],
     isMine: true,
     status: "active" as const,
   };
@@ -939,8 +948,13 @@ function TimelineReservationCard({
         purpose: reservation.title,
         status: reservation.status,
         user: {
+          id: reservation.user.id,
           name: reservation.user.name,
+          companyEmail: reservation.user.companyEmail,
+          avatarUrl: reservation.user.avatarUrl,
+          avatarSeed: reservation.user.avatarSeed,
         },
+        participants: reservation.participants,
         meetingRoom: {
           id: room.id,
           name: room.name,
@@ -986,7 +1000,12 @@ function TimelineReservationCard({
             </div>
           </div>
 
-          <p className="mt-2 text-[13px] text-[#6b6a67]">{reservation.user.name}</p>
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <AvatarStack owner={reservation.user} participants={reservation.participants} />
+            <span className="text-[11px] text-[#9b9a97]">
+              {1 + (reservation.participants?.length ?? 0)}명
+            </span>
+          </div>
         </div>
       </div>
     </button>

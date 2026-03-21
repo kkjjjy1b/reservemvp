@@ -62,6 +62,8 @@ const sampleRooms = [
 ];
 
 const SAMPLE_COLOR_KEYS = ["rose", "mint", "sky", "amber", "violet"];
+const DEFAULT_TEAM_SLUG = "default-team";
+const DEFAULT_TEAM_NAME = "기본 팀";
 
 function getKstParts(date) {
   const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -163,8 +165,26 @@ function buildTodayScenario() {
   };
 }
 
+async function ensureDefaultTeam() {
+  return prisma.team.upsert({
+    where: {
+      slug: DEFAULT_TEAM_SLUG,
+    },
+    update: {
+      name: DEFAULT_TEAM_NAME,
+      isDefault: true,
+    },
+    create: {
+      name: DEFAULT_TEAM_NAME,
+      slug: DEFAULT_TEAM_SLUG,
+      isDefault: true,
+    },
+  });
+}
+
 async function upsertUsers(passwordHash) {
   const users = {};
+  const defaultTeam = await ensureDefaultTeam();
 
   for (const user of sampleUsers) {
     users[user.companyEmail] = await prisma.user.upsert({
@@ -176,6 +196,7 @@ async function upsertUsers(passwordHash) {
         isActive: user.isActive,
         passwordHash,
         passwordChangedAt: user.passwordChangedAt,
+        teamId: defaultTeam.id,
       },
       create: {
         companyEmail: user.companyEmail,
@@ -183,6 +204,7 @@ async function upsertUsers(passwordHash) {
         isActive: user.isActive,
         passwordHash,
         passwordChangedAt: user.passwordChangedAt,
+        teamId: defaultTeam.id,
       },
     });
   }
@@ -219,6 +241,25 @@ async function upsertMeetingRooms() {
 }
 
 async function clearSampleReservations(userIds, roomIds) {
+  await prisma.reservationParticipant.deleteMany({
+    where: {
+      OR: [
+        {
+          userId: {
+            in: userIds,
+          },
+        },
+        {
+          reservation: {
+            meetingRoomId: {
+              in: roomIds,
+            },
+          },
+        },
+      ],
+    },
+  });
+
   await prisma.reservation.deleteMany({
     where: {
       OR: [
@@ -236,13 +277,6 @@ async function clearSampleReservations(userIds, roomIds) {
     },
   });
 
-  await prisma.session.deleteMany({
-    where: {
-      userId: {
-        in: userIds,
-      },
-    },
-  });
 }
 
 async function createReservation({
@@ -254,6 +288,7 @@ async function createReservation({
   purpose,
   status = ReservationStatus.active,
   colorKey = SAMPLE_COLOR_KEYS[0],
+  participantUserIds = [],
 }) {
   return prisma.reservation.create({
     data: {
@@ -265,6 +300,14 @@ async function createReservation({
       colorKey,
       purpose,
       status,
+      participants:
+        participantUserIds.length > 0
+          ? {
+              create: participantUserIds.map((participantUserId) => ({
+                userId: participantUserId,
+              })),
+            }
+          : undefined,
     },
   });
 }
@@ -321,6 +364,10 @@ async function main() {
     endTime: todayScenario.otherReservationEnd,
     purpose: "남의 예약 상세 조회",
     colorKey: SAMPLE_COLOR_KEYS[3],
+    participantUserIds: [
+      users["user-c@company.com"].id,
+      users["user-d@company.com"].id,
+    ],
   });
 
   await createReservation({

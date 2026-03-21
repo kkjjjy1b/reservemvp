@@ -2,13 +2,17 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 
+import { AvatarStack } from "@/components/timeline/avatar-stack";
+import { ParticipantSelector } from "@/components/timeline/participant-selector";
 import {
   getCreateAvailability,
   getUnavailableMessage,
 } from "@/lib/reservations/client-policy";
+import { getAvatarModel } from "@/lib/account/avatar";
 import { getReservationColorTheme } from "@/lib/reservations/colors";
 import type {
   MutationReservation,
+  ReservationPerson,
   ReservationDetailResponse,
   TimelineReservation,
 } from "@/lib/reservations/types";
@@ -28,6 +32,7 @@ type ReservationFormState = {
   startTime: string;
   endTime: string;
   purpose: string;
+  participants: ReservationPerson[];
 };
 
 const TIME_OPTIONS = buildTimeOptions();
@@ -69,6 +74,7 @@ export function ReservationDetailModal({
     startTime: "06:00",
     endTime: "06:30",
     purpose: "",
+    participants: [],
   });
   const [isPending, startTransition] = useTransition();
 
@@ -87,6 +93,7 @@ export function ReservationDetailModal({
         startTime: initialDetail.reservation.startTime,
         endTime: initialDetail.reservation.endTime,
         purpose: initialDetail.reservation.purpose ?? "",
+        participants: initialDetail.reservation.participants ?? [],
       });
       setIsLoading(false);
       setEditMode(false);
@@ -113,6 +120,7 @@ export function ReservationDetailModal({
             startTime: nextDetail.reservation.startTime,
             endTime: nextDetail.reservation.endTime,
             purpose: nextDetail.reservation.purpose ?? "",
+            participants: nextDetail.reservation.participants ?? [],
           });
           setEditMode(false);
           setShowCancelConfirm(false);
@@ -252,6 +260,9 @@ export function ReservationDetailModal({
           startDatetime: buildUtcDatetime(reservation.reservationDate, form.startTime),
           endDatetime: buildUtcDatetime(reservation.reservationDate, form.endTime),
           purpose: form.purpose.trim(),
+          participantUserIds: form.participants
+            .map((participant) => participant.id)
+            .filter((participantId): participantId is string => Boolean(participantId)),
         }),
       });
 
@@ -389,6 +400,26 @@ export function ReservationDetailModal({
                 <StaticField label="상태" value={reservation.status} />
               </div>
 
+              <div className="rounded-xl border border-black/10 bg-[#fbfbfa] px-4 py-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#9b9a97]">
+                      참석자
+                    </p>
+                    <div className="mt-3">
+                      <AvatarStack
+                        size="md"
+                        owner={reservation.user ?? null}
+                        participants={reservation.participants ?? []}
+                      />
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-[#6b6a67]">
+                    {1 + (reservation.participants?.length ?? 0)}명
+                  </span>
+                </div>
+              </div>
+
               {editMode ? (
                 <div className="grid gap-4 rounded-xl border border-black/10 bg-[#fbfbfa] p-4 md:grid-cols-2">
                   <SelectField
@@ -432,6 +463,19 @@ export function ReservationDetailModal({
                     />
                   </div>
                   <div className="md:col-span-2">
+                    <ParticipantSelector
+                      ownerId={reservation.user?.id ?? null}
+                      selectedParticipants={form.participants}
+                      onChange={(participants) =>
+                        setForm((current) => ({
+                          ...current,
+                          participants,
+                        }))
+                      }
+                      disabled={isPending}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
                     <div
                       className={`rounded-3xl border px-4 py-4 text-sm ${
                         editAvailability.isAvailable
@@ -456,6 +500,21 @@ export function ReservationDetailModal({
                   <div className="md:col-span-2">
                     <StaticField label="예약 목적" value={reservation.purpose ?? "미입력"} />
                   </div>
+                  <div className="md:col-span-2 rounded-xl border border-black/10 bg-[#fbfbfa] px-4 py-4">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#9b9a97]">
+                      참여자 상세
+                    </p>
+                    <div className="mt-3 space-y-2">
+                      <PersonRow person={reservation.user} roleLabel="예약자" />
+                      {(reservation.participants ?? []).map((participant) => (
+                        <PersonRow
+                          key={participant.id ?? participant.name}
+                          person={participant}
+                          roleLabel="참여자"
+                        />
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -471,6 +530,7 @@ export function ReservationDetailModal({
                           startTime: reservation.startTime,
                           endTime: reservation.endTime,
                           purpose: reservation.purpose ?? "",
+                          participants: reservation.participants ?? [],
                         });
                       }}
                       className="rounded-lg border border-black/10 px-4 py-3 text-sm text-[#37352f] transition hover:bg-black/[0.03]"
@@ -566,6 +626,47 @@ function StaticField({ label, value }: { label: string; value: string }) {
     <div className="rounded-xl border border-black/10 bg-[#fbfbfa] px-4 py-4">
       <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#9b9a97]">{label}</p>
       <p className="mt-2 text-sm font-medium text-[#37352f]">{value}</p>
+    </div>
+  );
+}
+
+function PersonRow({
+  person,
+  roleLabel,
+}: {
+  person?: ReservationPerson | null;
+  roleLabel: string;
+}) {
+  if (!person) {
+    return null;
+  }
+
+  const avatar = getAvatarModel(person);
+
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-xl border border-black/10 bg-white px-3 py-3">
+      <div className="flex min-w-0 items-center gap-3">
+        {avatar.imageUrl ? (
+          <img
+            src={avatar.imageUrl}
+            alt={person.name}
+            className="h-10 w-10 rounded-full object-cover"
+          />
+        ) : (
+          <span
+            className={`inline-flex h-10 w-10 items-center justify-center rounded-full border ${avatar.palette.bg} ${avatar.palette.border} ${avatar.palette.text} text-[11px] font-semibold`}
+          >
+            {avatar.initials}
+          </span>
+        )}
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-[#37352f]">{person.name}</p>
+          <p className="truncate text-xs text-[#787774]">{person.companyEmail ?? roleLabel}</p>
+        </div>
+      </div>
+      <span className="rounded-full bg-[#fbfbfa] px-3 py-1 text-xs font-medium text-[#6b6a67]">
+        {roleLabel}
+      </span>
     </div>
   );
 }

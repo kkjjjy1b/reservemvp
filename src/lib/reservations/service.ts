@@ -55,6 +55,20 @@ export async function getDailyReservations(reservationDate: string) {
         select: {
           id: true,
           name: true,
+          companyEmail: true,
+          avatarUrl: true,
+        },
+      },
+      participants: {
+        select: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              companyEmail: true,
+              avatarUrl: true,
+            },
+          },
         },
       },
       meetingRoom: {
@@ -101,6 +115,20 @@ export async function getReservationById(id: string) {
         select: {
           id: true,
           name: true,
+          companyEmail: true,
+          avatarUrl: true,
+        },
+      },
+      participants: {
+        select: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              companyEmail: true,
+              avatarUrl: true,
+            },
+          },
         },
       },
       meetingRoom: true,
@@ -114,6 +142,26 @@ export async function getMyReservations(userId: string) {
       userId,
     },
     include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          companyEmail: true,
+          avatarUrl: true,
+        },
+      },
+      participants: {
+        select: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              companyEmail: true,
+              avatarUrl: true,
+            },
+          },
+        },
+      },
       meetingRoom: {
         select: {
           id: true,

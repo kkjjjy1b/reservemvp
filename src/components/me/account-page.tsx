@@ -4,8 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState, useTransition } from "react";
 
+import { ProfileAvatarField } from "@/components/me/profile-avatar-field";
+import { AvatarStack } from "@/components/timeline/avatar-stack";
 import { ReservationDetailModal } from "@/components/timeline/reservation-detail-modal";
 import { StatusToast } from "@/components/ui/status-toast";
+import { getAvatarModel } from "@/lib/account/avatar";
 import type { CurrentUserProfile, MyReservationItem } from "@/lib/account/types";
 
 type AccountPageProps = {
@@ -29,6 +32,8 @@ export function AccountPage({ user, initialReservations }: AccountPageProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [logoutErrorMessage, setLogoutErrorMessage] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
   const [isRefreshing, startRefreshTransition] = useTransition();
   const [isLogoutPending, startLogoutTransition] = useTransition();
   const [isSavingProfile, startSaveTransition] = useTransition();
@@ -48,6 +53,18 @@ export function AccountPage({ user, initialReservations }: AccountPageProps) {
     const timer = window.setTimeout(() => setToastMessage(null), 3200);
     return () => window.clearTimeout(timer);
   }, [toastMessage]);
+
+  useEffect(() => {
+    if (!avatarFile) {
+      setAvatarPreviewUrl(null);
+      return;
+    }
+
+    const nextPreviewUrl = URL.createObjectURL(avatarFile);
+    setAvatarPreviewUrl(nextPreviewUrl);
+
+    return () => URL.revokeObjectURL(nextPreviewUrl);
+  }, [avatarFile]);
 
   function refreshReservations(successMessage?: string) {
     setErrorMessage(null);
@@ -84,12 +101,14 @@ export function AccountPage({ user, initialReservations }: AccountPageProps) {
       newPassword: "",
       confirmPassword: "",
     });
+    setAvatarFile(null);
     setProfileFormError(null);
     setProfileModalOpen(true);
   }
 
   function closeProfileModal() {
     setProfileModalOpen(false);
+    setAvatarFile(null);
     setProfileFormError(null);
   }
 
@@ -145,10 +164,45 @@ export function AccountPage({ user, initialReservations }: AccountPageProps) {
         return;
       }
 
-      setProfile(payload.user);
+      let nextUser = payload.user;
+
+      if (avatarFile) {
+        const formData = new FormData();
+        formData.set("avatar", avatarFile);
+
+        const avatarResponse = await fetch("/api/me/avatar", {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        });
+
+        const avatarPayload = (await avatarResponse.json().catch(() => ({}))) as {
+          message?: string;
+          user?: CurrentUserProfile;
+        };
+
+        if (!avatarResponse.ok || !avatarPayload.user) {
+          setProfile(nextUser);
+          setProfileModalOpen(false);
+          setAvatarFile(null);
+          setProfileForm({
+            name: nextUser.name,
+            currentPassword: "",
+            newPassword: "",
+            confirmPassword: "",
+          });
+          setToastMessage("기본 프로필 정보는 저장되었지만, 프로필 이미지는 업로드하지 못했습니다.");
+          return;
+        }
+
+        nextUser = avatarPayload.user;
+      }
+
+      setProfile(nextUser);
       setProfileModalOpen(false);
+      setAvatarFile(null);
       setProfileForm({
-        name: payload.user.name,
+        name: nextUser.name,
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
@@ -177,6 +231,8 @@ export function AccountPage({ user, initialReservations }: AccountPageProps) {
       router.refresh();
     });
   }
+
+  const profileAvatar = getAvatarModel(profile);
 
   return (
     <main className="min-h-screen bg-[#f7f7f5] px-3 py-3 md:px-5 md:py-5">
@@ -274,9 +330,44 @@ export function AccountPage({ user, initialReservations }: AccountPageProps) {
                 />
               </div>
 
-              <div className="mt-5 grid gap-3">
+              <div className="mt-5 space-y-3">
+                <div className="rounded-[20px] border border-black/10 bg-[#fbfbfa] p-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-4">
+                      {profileAvatar.imageUrl ? (
+                        <img
+                          src={profileAvatar.imageUrl}
+                          alt={profile.name}
+                          className="h-20 w-20 rounded-full border border-black/10 object-cover"
+                        />
+                      ) : (
+                        <span
+                          className={`inline-flex h-20 w-20 items-center justify-center rounded-full border ${profileAvatar.palette.bg} ${profileAvatar.palette.border} ${profileAvatar.palette.text} text-xl font-semibold`}
+                        >
+                          {profileAvatar.initials}
+                        </span>
+                      )}
+                      <div>
+                        <p className="text-lg font-semibold text-[#2f3437]">{profile.name}</p>
+                        <p className="mt-1 text-sm text-[#6b6a67]">{profile.companyEmail}</p>
+                        <p className="mt-2 text-xs text-[#9b9a97]">
+                          {profile.team?.name ?? "기본 팀"}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={openProfileModal}
+                      className="inline-flex items-center justify-center rounded-lg border border-black/10 bg-white px-4 py-2.5 text-sm font-medium text-[#37352f] transition hover:bg-black/[0.03]"
+                    >
+                      프로필 설정
+                    </button>
+                  </div>
+                </div>
+
                 <InfoRow label="이름" value={profile.name} />
                 <InfoRow label="회사 이메일" value={profile.companyEmail} />
+                <InfoRow label="소속 팀" value={profile.team?.name ?? "기본 팀"} />
                 <InfoRow label="계정 상태" value={profile.isActive ? "활성" : "비활성"} />
                 <InfoRow
                   label="비밀번호 변경 시각"
@@ -373,7 +464,15 @@ export function AccountPage({ user, initialReservations }: AccountPageProps) {
                           <TableCell>{reservation.reservationDate}</TableCell>
                           <TableCell>{reservation.startTime}</TableCell>
                           <TableCell>{reservation.endTime}</TableCell>
-                          <TableCell>{reservation.purpose ?? "-"}</TableCell>
+                          <TableCell>
+                            <div className="space-y-2">
+                              <span>{reservation.purpose ?? "-"}</span>
+                              <AvatarStack
+                                owner={reservation.owner}
+                                participants={reservation.participants}
+                              />
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <span
                               className={`rounded-full px-3 py-1 text-xs font-medium ${
@@ -420,6 +519,13 @@ export function AccountPage({ user, initialReservations }: AccountPageProps) {
             </div>
 
             <div className="space-y-5 px-6 py-6 md:px-7">
+              <ProfileAvatarField
+                profile={profile}
+                previewUrl={avatarPreviewUrl}
+                disabled={isSavingProfile}
+                onFileChange={setAvatarFile}
+              />
+
               <label className="block">
                 <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#787774]">
                   이름

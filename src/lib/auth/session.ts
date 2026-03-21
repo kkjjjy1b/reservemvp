@@ -6,16 +6,7 @@ import {
   SESSION_COOKIE_NAME,
   SESSION_DURATION_MS,
 } from "@/lib/auth/constants";
-
-type SessionUser = {
-  id: string;
-  companyEmail: string;
-  name: string;
-  isActive: boolean;
-  passwordChangedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
+import { findActiveSessionUserById, type AuthSessionUser } from "@/lib/auth/user";
 
 type SessionPayload = {
   sub: string;
@@ -30,7 +21,7 @@ type SessionPayload = {
 };
 
 type CurrentSession = {
-  user: SessionUser;
+  user: AuthSessionUser;
   expiresAt: Date;
   rememberMe: boolean;
 };
@@ -42,7 +33,17 @@ export function getSessionExpiryDate(rememberMe = false) {
 }
 
 function getSessionSecret() {
-  return process.env.SESSION_SECRET || process.env.DATABASE_URL || "reserv-mvp-dev-secret";
+  const sessionSecret = process.env.SESSION_SECRET?.trim();
+
+  if (sessionSecret) {
+    return sessionSecret;
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    return "reserv-mvp-dev-secret";
+  }
+
+  throw new Error("SESSION_SECRET_MISSING");
 }
 
 function serializePayload(payload: SessionPayload) {
@@ -88,7 +89,11 @@ function verifySignedToken(token: string) {
   }
 }
 
-function buildSessionPayload(user: SessionUser, expiresAt: Date, rememberMe: boolean): SessionPayload {
+function buildSessionPayload(
+  user: AuthSessionUser,
+  expiresAt: Date,
+  rememberMe: boolean,
+): SessionPayload {
   return {
     sub: user.id,
     companyEmail: user.companyEmail,
@@ -102,19 +107,7 @@ function buildSessionPayload(user: SessionUser, expiresAt: Date, rememberMe: boo
   };
 }
 
-function deserializeSessionUser(payload: SessionPayload): SessionUser {
-  return {
-    id: payload.sub,
-    companyEmail: payload.companyEmail,
-    name: payload.name,
-    isActive: payload.isActive,
-    passwordChangedAt: payload.passwordChangedAt ? new Date(payload.passwordChangedAt) : null,
-    createdAt: new Date(payload.createdAt),
-    updatedAt: new Date(payload.updatedAt),
-  };
-}
-
-export async function createSession(user: SessionUser, rememberMe = false) {
+export async function createSession(user: AuthSessionUser, rememberMe = false) {
   const expiresAt = getSessionExpiryDate(rememberMe);
   const token = createSignedToken(buildSessionPayload(user, expiresAt, rememberMe));
   return { token, expiresAt };
@@ -172,12 +165,22 @@ export async function getCurrentSession() {
     return null;
   }
 
-  if (!payload.isActive) {
+  const currentUser = await findActiveSessionUserById(payload.sub);
+
+  if (!currentUser) {
+    return null;
+  }
+
+  const currentPasswordChangedAt = currentUser.passwordChangedAt
+    ? currentUser.passwordChangedAt.toISOString()
+    : null;
+
+  if (payload.passwordChangedAt !== currentPasswordChangedAt) {
     return null;
   }
 
   return {
-    user: deserializeSessionUser(payload),
+    user: currentUser,
     expiresAt,
     rememberMe: payload.rememberMe,
   } satisfies CurrentSession;
@@ -197,7 +200,7 @@ export async function deleteCurrentSession() {
   await clearSessionCookie();
 }
 
-export async function refreshSessionCookie(user: SessionUser, currentSession: CurrentSession) {
+export async function refreshSessionCookie(user: AuthSessionUser, currentSession: CurrentSession) {
   const token = createSignedToken(
     buildSessionPayload(user, currentSession.expiresAt, currentSession.rememberMe),
   );

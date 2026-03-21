@@ -38,7 +38,17 @@ type TimelineReservationRecord = {
   user: {
     id: string;
     name: string;
+    companyEmail?: string | null;
+    avatarUrl?: string | null;
   };
+  participants?: Array<{
+    user: {
+      id: string;
+      name: string;
+      companyEmail?: string | null;
+      avatarUrl?: string | null;
+    };
+  }>;
 };
 
 function toTimelineReservation(
@@ -66,7 +76,19 @@ function toTimelineReservation(
     slotSpan,
     user: {
       name: reservation.user.name,
+      id: reservation.user.id,
+      companyEmail: reservation.user.companyEmail ?? undefined,
+      avatarUrl: reservation.user.avatarUrl ?? null,
+      avatarSeed: reservation.user.companyEmail ?? reservation.user.id,
     },
+    participants:
+      reservation.participants?.map(({ user }) => ({
+        id: user.id,
+        name: user.name,
+        companyEmail: user.companyEmail ?? undefined,
+        avatarUrl: user.avatarUrl ?? null,
+        avatarSeed: user.companyEmail ?? user.id,
+      })) ?? [],
     isMine: reservation.user.id === currentUserId,
     status: "active",
   };

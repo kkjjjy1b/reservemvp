@@ -1,0 +1,5 @@
+interface:
+  display_name: "Reserve Frontend"
+  short_description: "Frontend work without UX regressions"
+  default_prompt: "Use $reserve-frontend-engineer to implement or review frontend changes while preserving the current reserve MVP experience."
+

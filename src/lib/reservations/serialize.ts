@@ -1,5 +1,6 @@
 import { Reservation, ReservationStatus } from "@prisma/client";
 
+import { getAvatarSeed } from "@/lib/auth/user";
 import { isReservationColorKey } from "@/lib/reservations/colors";
 import { formatKstTime } from "@/lib/reservations/datetime";
 
@@ -8,12 +9,49 @@ export function serializeReservationStatus(status: ReservationStatus) {
 }
 
 type ReservationWithRelations = Reservation & {
-  user?: { id: string; name: string };
+  user?: {
+    id: string;
+    name: string;
+    companyEmail?: string | null;
+    avatarUrl?: string | null;
+  };
+  participants?: Array<{
+    user: {
+      id: string;
+      name: string;
+      companyEmail?: string | null;
+      avatarUrl?: string | null;
+    };
+  }>;
   meetingRoom?: { id: string; name: string };
 };
 
 function normalizeColorKey(colorKey: string) {
   return isReservationColorKey(colorKey) ? colorKey : "sky";
+}
+
+function serializeReservationPerson(user: {
+  id: string;
+  name: string;
+  companyEmail?: string | null;
+  avatarUrl?: string | null;
+}) {
+  return {
+    id: user.id,
+    name: user.name,
+    companyEmail: user.companyEmail ?? undefined,
+    avatarUrl: user.avatarUrl ?? null,
+    avatarSeed: getAvatarSeed({
+      id: user.id,
+      companyEmail: user.companyEmail ?? user.id,
+    }),
+  };
+}
+
+function serializeReservationParticipants(
+  participants: ReservationWithRelations["participants"],
+) {
+  return participants?.map(({ user }) => serializeReservationPerson(user)) ?? [];
 }
 
 export function serializeTimelineReservation(reservation: ReservationWithRelations) {
@@ -25,10 +63,9 @@ export function serializeTimelineReservation(reservation: ReservationWithRelatio
     endDatetime: reservation.endDatetime.toISOString(),
     purpose: reservation.purpose,
     user: reservation.user
-      ? {
-          name: reservation.user.name,
-        }
+      ? serializeReservationPerson(reservation.user)
       : undefined,
+    participants: serializeReservationParticipants(reservation.participants),
     meetingRoom: reservation.meetingRoom
       ? {
           id: reservation.meetingRoom.id,
@@ -50,10 +87,9 @@ export function serializeReservationDetail(reservation: ReservationWithRelations
     purpose: reservation.purpose,
     status: serializeReservationStatus(reservation.status),
     user: reservation.user
-      ? {
-          name: reservation.user.name,
-        }
+      ? serializeReservationPerson(reservation.user)
       : undefined,
+    participants: serializeReservationParticipants(reservation.participants),
     meetingRoom: reservation.meetingRoom
       ? {
           id: reservation.meetingRoom.id,
@@ -74,6 +110,8 @@ export function serializeMyReservation(reservation: ReservationWithRelations) {
     endTime: formatKstTime(reservation.endDatetime),
     purpose: reservation.purpose,
     status: serializeReservationStatus(reservation.status),
+    owner: reservation.user ? serializeReservationPerson(reservation.user) : undefined,
+    participants: serializeReservationParticipants(reservation.participants),
     meetingRoom: reservation.meetingRoom
       ? {
           id: reservation.meetingRoom.id,
@@ -95,10 +133,9 @@ export function serializeMutationReservation(reservation: ReservationWithRelatio
     purpose: reservation.purpose,
     status: serializeReservationStatus(reservation.status),
     user: reservation.user
-      ? {
-          name: reservation.user.name,
-        }
+      ? serializeReservationPerson(reservation.user)
       : undefined,
+    participants: serializeReservationParticipants(reservation.participants),
     meetingRoom: reservation.meetingRoom
       ? {
           id: reservation.meetingRoom.id,
@@ -116,7 +153,8 @@ export function serializeReservation(reservation: ReservationWithRelations) {
     endDatetime: reservation.endDatetime.toISOString(),
     purpose: reservation.purpose,
     status: serializeReservationStatus(reservation.status),
-    user: reservation.user,
+    user: reservation.user ? serializeReservationPerson(reservation.user) : undefined,
+    participants: serializeReservationParticipants(reservation.participants),
     meetingRoom: reservation.meetingRoom,
   };
 }

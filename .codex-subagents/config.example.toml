@@ -1,0 +1,13 @@
+[mcp_servers.subagents]
+command = "/usr/bin/env"
+args = ["node", "/ABS/PATH/TO/codex-subagents-mcp/dist/codex-subagents.mcp.js", "--agents-dir", "/Users/jay/Desktop/Vibe/reservemvp/.codex-subagents/agents"]
+
+[profiles.review]
+model = "gpt-5"
+approval_policy = "on-request"
+sandbox_mode = "read-only"
+
+[profiles.debugger]
+model = "gpt-5"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"

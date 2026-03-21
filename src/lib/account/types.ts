@@ -1,5 +1,13 @@
 import type { ReservationColorKey } from "@/lib/reservations/colors";
 
+export type ProfileIdentity = {
+  id: string;
+  name: string;
+  companyEmail?: string;
+  avatarUrl?: string | null;
+  avatarSeed?: string | null;
+};
+
 export type CurrentUserProfile = {
   id: string;
   companyEmail: string;
@@ -8,6 +16,12 @@ export type CurrentUserProfile = {
   passwordChangedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  avatarUrl?: string | null;
+  avatarSeed?: string | null;
+  team?: {
+    id: string;
+    name: string;
+  } | null;
 };
 
 export type MyReservationItem = {
@@ -23,4 +37,6 @@ export type MyReservationItem = {
   meetingRoom?: {
     name: string;
   };
+  owner?: ProfileIdentity;
+  participants?: ProfileIdentity[];
 };

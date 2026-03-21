@@ -40,6 +40,20 @@ export async function POST(_: NextRequest, context: ReservationCancelContext) {
           select: {
             id: true,
             name: true,
+            companyEmail: true,
+            avatarUrl: true,
+          },
+        },
+        participants: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                companyEmail: true,
+                avatarUrl: true,
+              },
+            },
           },
         },
         meetingRoom: {

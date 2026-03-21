@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { refreshSessionCookie, requireCurrentSession } from "@/lib/auth/session";
-import { sanitizeUser } from "@/lib/auth/user";
+import { findActiveSessionUserById, sanitizeUser } from "@/lib/auth/user";
 import { badRequest, serverError, unauthorized } from "@/lib/http";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { prisma } from "@/lib/prisma";
@@ -57,7 +57,7 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    const updatedUser = await prisma.user.update({
+    await prisma.user.update({
       where: {
         id: session.user.id,
       },
@@ -72,9 +72,15 @@ export async function PATCH(request: NextRequest) {
       },
     });
 
+    const updatedUser = await findActiveSessionUserById(session.user.id);
+
+    if (!updatedUser) {
+      return unauthorized();
+    }
+
     const user = sanitizeUser(updatedUser);
 
-    await refreshSessionCookie(user, session);
+    await refreshSessionCookie(updatedUser, session);
 
     return NextResponse.json({
       user: {

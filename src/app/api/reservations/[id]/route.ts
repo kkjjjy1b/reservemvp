@@ -4,6 +4,10 @@ import { requireCurrentSession } from "@/lib/auth/session";
 import { badRequest, forbidden, serverError, unauthorized } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import {
+  normalizeParticipantUserIds,
+  resolveParticipantUsers,
+} from "@/lib/reservations/participants";
+import {
   serializeMutationReservation,
   serializeReservationDetail,
 } from "@/lib/reservations/serialize";
@@ -25,6 +29,7 @@ type UpdateReservationBody = {
   startDatetime?: string;
   endDatetime?: string;
   purpose?: string;
+  participantUserIds?: string[];
 };
 
 export async function GET(_: NextRequest, context: ReservationRouteContext) {
@@ -77,6 +82,12 @@ export async function PATCH(request: NextRequest, context: ReservationRouteConte
       return badRequest("시작 시간과 종료 시간은 필수입니다.");
     }
 
+    const participantUserIds = normalizeParticipantUserIds(body.participantUserIds);
+
+    if (participantUserIds === null) {
+      return badRequest("참여자 정보가 올바르지 않습니다.");
+    }
+
     const startDatetime = new Date(body.startDatetime);
     const endDatetime = new Date(body.endDatetime);
     const validationError = validateReservationUpdateWindow({
@@ -100,6 +111,16 @@ export async function PATCH(request: NextRequest, context: ReservationRouteConte
       return badRequest("현재 예약이 불가능한 시간입니다.");
     }
 
+    const participantUsers = await resolveParticipantUsers({
+      teamId: session.user.team?.id,
+      ownerUserId: session.user.id,
+      participantUserIds,
+    });
+
+    if (participantUsers.error) {
+      return participantUsers.error;
+    }
+
     const updatedReservation = await prisma.reservation.update({
       where: {
         id: reservation.id,
@@ -108,12 +129,32 @@ export async function PATCH(request: NextRequest, context: ReservationRouteConte
         startDatetime,
         endDatetime,
         purpose: body.purpose?.trim() || null,
+        participants: {
+          deleteMany: {},
+          create: participantUsers.users.map((user) => ({
+            userId: user.id,
+          })),
+        },
       },
       include: {
         user: {
           select: {
             id: true,
             name: true,
+            companyEmail: true,
+            avatarUrl: true,
+          },
+        },
+        participants: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                companyEmail: true,
+                avatarUrl: true,
+              },
+            },
           },
         },
         meetingRoom: {

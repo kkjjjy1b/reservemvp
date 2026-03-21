@@ -18,14 +18,33 @@ model User {
   name              String
   passwordHash      String        @map("password_hash")
   isActive          Boolean       @default(true) @map("is_active")
+  teamId            String?       @map("team_id") @db.Uuid
+  avatarUrl         String?       @map("avatar_url")
+  avatarStorageKey  String?       @map("avatar_storage_key")
   passwordChangedAt DateTime?     @map("password_changed_at") @db.Timestamptz(6)
   createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  team              Team?         @relation(fields: [teamId], references: [id])
   reservations      Reservation[]
-  sessions          Session[]
+  participantLinks  ReservationParticipant[]
 
+  @@index([teamId, isActive, name], map: "users_team_active_name_idx")
   @@map("users")
+}
+
+model Team {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String
+  slug       String   @unique
+  isDefault  Boolean  @default(false) @map("is_default")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  users      User[]
+
+  @@index([isDefault], map: "teams_is_default_idx")
+  @@map("teams")
 }
 
 model MeetingRoom {
@@ -60,23 +79,22 @@ model Reservation {
 
   user            User              @relation(fields: [userId], references: [id])
   meetingRoom     MeetingRoom       @relation(fields: [meetingRoomId], references: [id])
+  participants    ReservationParticipant[]
 
   @@index([reservationDate, meetingRoomId], map: "reservations_date_room_idx")
   @@index([userId, reservationDate(sort: Desc)], map: "reservations_user_idx")
   @@map("reservations")
 }
 
-model Session {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId     String   @map("user_id") @db.Uuid
-  tokenHash  String   @unique @map("token_hash")
-  expiresAt  DateTime @map("expires_at") @db.Timestamptz(6)
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+model ReservationParticipant {
+  reservationId String      @map("reservation_id") @db.Uuid
+  userId        String      @map("user_id") @db.Uuid
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId], map: "sessions_user_idx")
-  @@index([expiresAt], map: "sessions_expires_at_idx")
-  @@map("sessions")
+  @@id([reservationId, userId])
+  @@index([userId], map: "reservation_participants_user_idx")
+  @@map("reservation_participants")
 }

@@ -66,6 +66,8 @@ npm run dev
 ## 배포 전 확인
 - 운영 `DATABASE_URL` 준비
 - 운영 `SESSION_SECRET` 준비
+- 프로필 이미지 업로드를 쓸 경우 운영 `BLOB_READ_WRITE_TOKEN` 준비
+- 예약 참여자 메일 발송을 쓸 경우 운영 `RESEND_API_KEY`, `RESEND_FROM_EMAIL` 준비
 - 운영 DB에 migration 적용
 - 운영용 회의실 / 사용자 초기 데이터 확정
 - `npm run build` 통과 확인

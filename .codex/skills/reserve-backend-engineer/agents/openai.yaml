@@ -1,0 +1,5 @@
+interface:
+  display_name: "Reserve Backend"
+  short_description: "Safe backend evolution for reserve"
+  default_prompt: "Use $reserve-backend-engineer to review or implement backend changes while preserving current UI, auth behavior, and rendering speed."
+

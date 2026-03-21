@@ -1,5 +1,13 @@
 import type { ReservationColorKey } from "@/lib/reservations/colors";
 
+export type ReservationPerson = {
+  id?: string;
+  name: string;
+  companyEmail?: string;
+  avatarUrl?: string | null;
+  avatarSeed?: string | null;
+};
+
 export type TimelineResponse = {
   date: string;
   timeline: {
@@ -32,8 +40,13 @@ export type TimelineReservation = {
   endSlotIndex: number;
   slotSpan: number;
   user: {
+    id?: string;
     name: string;
+    companyEmail?: string;
+    avatarUrl?: string | null;
+    avatarSeed?: string | null;
   };
+  participants?: ReservationPerson[];
   isMine: boolean;
   status: "active";
 };
@@ -58,8 +71,13 @@ export type ReservationDetail = {
   purpose: string | null;
   status: "active" | "cancelled";
   user?: {
+    id?: string;
     name: string;
+    companyEmail?: string;
+    avatarUrl?: string | null;
+    avatarSeed?: string | null;
   };
+  participants?: ReservationPerson[];
   meetingRoom?: {
     id: string;
     name: string;
@@ -74,6 +92,10 @@ export type MeetingRoomsResponse = {
     location: string | null;
     description: string | null;
   }>;
+};
+
+export type UserSearchResponse = {
+  users: ReservationPerson[];
 };
 
 export type ReservationDetailResponse = {
@@ -94,8 +116,13 @@ export type MutationReservation = {
   purpose: string | null;
   status: "active" | "cancelled";
   user?: {
+    id?: string;
     name: string;
+    companyEmail?: string;
+    avatarUrl?: string | null;
+    avatarSeed?: string | null;
   };
+  participants?: ReservationPerson[];
   meetingRoom?: {
     id?: string;
     name: string;

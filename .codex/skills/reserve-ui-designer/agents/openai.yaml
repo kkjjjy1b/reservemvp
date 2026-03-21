@@ -1,0 +1,5 @@
+interface:
+  display_name: "Reserve UI Designer"
+  short_description: "UI design for reserve without drift"
+  default_prompt: "Use $reserve-ui-designer to refine visuals and interaction design while protecting the current reserve MVP experience."
+

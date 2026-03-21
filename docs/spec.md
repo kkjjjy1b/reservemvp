@@ -237,14 +237,9 @@
 | updated_at | timestamptz | not null |
 
 ### 9.4 Session
-| 필드명 | 타입 | 제약/설명 |
-| --- | --- | --- |
-| id | uuid | PK |
-| user_id | uuid | FK -> User.id, not null |
-| token_hash | text | unique, not null |
-| expires_at | timestamptz | not null |
-| created_at | timestamptz | not null |
-| updated_at | timestamptz | not null |
+- 세션 저장소는 DB 테이블이 아니라 서명된 HTTP-only 쿠키를 사용한다.
+- 쿠키 payload에는 사용자 식별자, 만료 시각, 자동 로그인 여부, 비밀번호 변경 검증용 값만 담는다.
+- 요청 시에는 서명 검증 후 현재 사용자 상태를 DB에서 다시 확인한다.
 
 ### 9.5 데이터 규칙
 - `company_email`은 unique 여야 한다.
@@ -253,7 +248,7 @@
 - 취소된 예약은 기본 조회에서 제외한다.
 - 회의실 정렬은 `sort_order` 우선, 이후 `name` 보조 기준으로 처리한다.
 - 모든 시간 저장은 `timestamptz` 기준으로 처리한다.
-- 세션은 HTTP-only 쿠키 기반으로 운용하며, DB에는 세션 토큰 해시만 저장한다.
+- 세션은 HTTP-only 쿠키 기반으로 운용하며, 요청마다 현재 사용자 상태를 DB에서 다시 확인한다.
 - 예약 중복 방지는 서버 검증 외에 DB exclusion constraint 수준에서도 검토한다.
 
 ## 10. API 초안
@@ -478,7 +473,7 @@
 - 모든 시간 계산은 일관된 기준으로 처리한다.
 - 날짜별 일간 조회를 우선 구현하되, 조회 모델과 타임라인 렌더링 구조는 추후 주간 보기 확장이 가능하도록 설계한다.
 - 추후 관리자 기능, 회의실 관리 기능, 인증 고도화가 가능하도록 `User`, `MeetingRoom`, `Reservation` 구조를 분리한다.
-- 추후 관리자 기능, 회의실 관리 기능, 인증 고도화가 가능하도록 `User`, `MeetingRoom`, `Reservation`, `Session` 구조를 분리한다.
+- 추후 관리자 기능, 회의실 관리 기능, 인증 고도화가 가능하도록 `User`, `MeetingRoom`, `Reservation` 구조를 분리한다.
 
 ## 15. 기술 기준
 - 프론트엔드: Next.js

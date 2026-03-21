@@ -1,0 +1,5 @@
+interface:
+  display_name: "Reserve Analysis"
+  short_description: "Repo, spec, and release analysis"
+  default_prompt: "Use $reserve-analysis-suite to explore this repo, verify spec alignment, and assess release risk without changing deployed behavior."
+

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 
+import { ParticipantSelector } from "@/components/timeline/participant-selector";
 import {
   getCreateAvailability,
   getUnavailableMessage,
@@ -14,11 +15,13 @@ import {
 import type {
   EmptySlotSelection,
   MutationReservation,
+  ReservationPerson,
   TimelineReservation,
 } from "@/lib/reservations/types";
 
 type ReservationCreateModalProps = {
   selection: EmptySlotSelection | null;
+  currentUserId?: string | null;
   roomReservations: TimelineReservation[];
   onClose: () => void;
   onCreated: (message: string, reservation: MutationReservation) => void;
@@ -34,11 +37,13 @@ const UNAVAILABLE_MESSAGE = getUnavailableMessage();
 
 export function ReservationCreateModal({
   selection,
+  currentUserId = null,
   roomReservations,
   onClose,
   onCreated,
 }: ReservationCreateModalProps) {
   const [colorKey, setColorKey] = useState<ReservationColorKey>(getRandomReservationColorKey);
+  const [participants, setParticipants] = useState<ReservationPerson[]>([]);
   const [form, setForm] = useState<ReservationCreateForm>(() => ({
     endTime: getNextTimeOption(selection?.startTime ?? "06:00"),
     purpose: "",
@@ -55,6 +60,7 @@ export function ReservationCreateModal({
       endTime: getNextTimeOption(selection.startTime),
       purpose: "",
     });
+    setParticipants([]);
     setColorKey(getRandomReservationColorKey());
     setErrorMessage(null);
   }, [selection]);
@@ -108,6 +114,9 @@ export function ReservationCreateModal({
           endDatetime: buildUtcDatetime(currentSelection.date, form.endTime),
           colorKey,
           purpose: form.purpose.trim(),
+          participantUserIds: participants
+            .map((participant) => participant.id)
+            .filter((participantId): participantId is string => Boolean(participantId)),
         }),
       });
 
@@ -219,6 +228,17 @@ export function ReservationCreateModal({
               placeholder="선택 입력"
             />
           </label>
+
+          <ParticipantSelector
+            ownerId={currentUserId}
+            selectedParticipants={participants}
+            onChange={setParticipants}
+            disabled={isPending}
+          />
+
+          <div className="rounded-xl border border-black/10 bg-[#fbfbfa] px-4 py-3 text-sm text-[#6b6a67]">
+            예약이 생성되면 추가한 참여자에게 안내 이메일이 발송됩니다.
+          </div>
 
           <div
             className={`rounded-3xl border px-4 py-4 text-sm ${
