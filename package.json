@@ -14,6 +14,7 @@
     "review": "next build && next start -p 3002",
     "review:clean": "rm -rf .next && next build && next start -p 3002",
     "lint": "next lint",
+    "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
