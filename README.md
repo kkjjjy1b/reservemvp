@@ -2,6 +2,11 @@
 
 사내 회의실 예약 웹 서비스 MVP 프로젝트다.
 
+## 새 환경에서 먼저 읽기
+- 새 스레드나 다른 작업 환경에서는 먼저 `docs/context-primer.md`를 읽는다.
+- 그다음 `docs/push-journal.md`, `docs/change-log.md` 순서로 최근 맥락을 확인한다.
+- 세부 정책이 필요하면 `docs/spec.md`, `docs/requirements.md`로 내려간다.
+
 ## 기술 스택
 - `Next.js` App Router
 - `TypeScript`
@@ -74,6 +79,8 @@ npm run dev
 - review 서버 기준 수동 검수 완료
 
 ## 주요 문서
+- [작업 맥락 시작점](./docs/context-primer.md)
+- [푸시 작업 일지](./docs/push-journal.md)
 - [요구사항](./docs/requirements.md)
 - [개발 명세](./docs/spec.md)
 - [중요 변경 로그](./docs/change-log.md)

@@ -1,6 +1,7 @@
 # Important Change Log
 
 PM, Reviewer, Builder가 배포 전에 확인해야 할 중요한 변경만 남긴 요약 로그다.
+Push 단위 목표와 남은 작업은 `docs/push-journal.md`에서 관리한다.
 
 ## 기록 원칙
 - UI 미세 수정, 문구 수정, 오타 수정은 기록하지 않는다.
