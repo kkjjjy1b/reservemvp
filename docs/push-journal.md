@@ -8,6 +8,30 @@
 - 세부 구현을 모두 나열하기보다, 다음 환경에서 바로 이어서 일할 수 있는 수준으로 압축한다.
 - 제품 정책/DB/API 계약 자체가 바뀌면 이 문서만이 아니라 `docs/change-log.md`에도 함께 반영한다.
 
+## 2026-03-25 - deployment env status update
+### 목표
+- 운영 환경변수 준비 상태를 정리하고, 새 작업 환경에서도 바로 이어질 수 있는 배포 맥락을 남긴다.
+- 메일 발송 기능을 잠시 보류한 상태에서 현재 운영 가능 범위를 명확히 한다.
+
+### 진행한 것
+- 운영 환경변수 체크리스트 문서를 추가했다.
+- `DATABASE_URL`, `SESSION_SECRET`, `BLOB_READ_WRITE_TOKEN`, `RESEND_API_KEY`, `APP_URL` 준비 상태를 확인했다.
+- `APP_URL`은 당분간 `https://reservemvp.vercel.app` 기준으로 유지하기로 정리했다.
+- 커스텀 도메인 확보 전까지 `RESEND_FROM_EMAIL`, `RESERVATION_REPLY_TO_EMAIL` 없이 메일 발송 기능을 보류하기로 결정했다.
+- 배포 handoff 문서에 현재 Git 연결 상태와 메일 보류 상황을 반영했다.
+
+### 남은 것
+- 운영 DB에 최신 migration을 적용해야 한다.
+- Vercel 운영 환경변수에 준비된 secret들을 입력해야 한다.
+- 프로덕션 빌드와 핵심 사용자 흐름을 실제 배포 기준으로 검수해야 한다.
+- 커스텀 도메인을 확보하면 Resend 도메인 검증 후 메일 발송 기능을 다시 활성화해야 한다.
+
+### 꼭 지켜야 하는 원칙
+- 실제 secret 값은 `.env` 또는 배포 플랫폼 secret에만 저장하고 Git에는 남기지 않는다.
+- 커스텀 도메인 전까지 메일 기능이 없어도 예약 핵심 흐름은 계속 동작해야 한다.
+- `내 예약`은 계속 소유 예약 기준으로 유지한다.
+- 새 환경에서는 `docs/context-primer.md`, `docs/push-journal.md`, `docs/ops-env-checklist.md`를 먼저 읽고 시작한다.
+
 ## 2026-03-21 - origin/main `77cc45b`
 ### 목표
 - 예약을 개인 단위 이벤트에서 사람 중심 협업 흐름으로 확장한다.
