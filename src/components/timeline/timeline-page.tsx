@@ -73,21 +73,24 @@ export function TimelinePage({
   const [selectedReservationDetail, setSelectedReservationDetail] =
     useState<ReservationDetailResponse | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [hasMounted, setHasMounted] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const [desktopHeaderHeight, setDesktopHeaderHeight] = useState(0);
 
   const slots = buildSlots(timelineData?.timeline.slotCount ?? 36);
   const isTodayView = isToday(currentDate);
   const currentLineOffsetPx = useMemo(() => {
-    if (!timelineData || !isTodayView) {
+    if (!timelineData || !isTodayView || !hasMounted) {
       return null;
     }
 
     return getCurrentTimelineOffsetPx(now);
-  }, [timelineData, isTodayView, now]);
+  }, [hasMounted, timelineData, isTodayView, now]);
   const currentTimeLabel = useMemo(() => getCurrentTimeLabel(now), [now]);
 
   useEffect(() => {
+    setHasMounted(true);
+
     const timer = window.setInterval(() => setNow(new Date()), 60_000);
     return () => window.clearInterval(timer);
   }, []);
@@ -575,8 +578,7 @@ export function TimelinePage({
                     ref={mobileTimelineScrollRef}
                     className="overflow-y-auto"
                     style={{
-                      height: "calc(100vh - 360px)",
-                      minHeight: "480px",
+                      height: "clamp(360px, calc(100dvh - 320px), 720px)",
                     }}
                   >
                     <div className="relative">

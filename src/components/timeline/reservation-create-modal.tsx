@@ -71,6 +71,20 @@ export function ReservationCreateModal({
       return;
     }
 
+    const { body } = document;
+    const previousOverflow = body.style.overflow;
+    body.style.overflow = "hidden";
+
+    return () => {
+      body.style.overflow = previousOverflow;
+    };
+  }, [selection]);
+
+  useEffect(() => {
+    if (!selection) {
+      return;
+    }
+
     setForm({
       isRecurring: false,
       repeatStartDate: selection.date,
@@ -227,18 +241,29 @@ export function ReservationCreateModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,23,42,0.18)] px-4 py-6 backdrop-blur-[2px]">
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
 
-      <div className="relative z-10 w-full max-w-xl overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.12)]">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reservation-create-title"
+        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.12)]"
+      >
         <div className="border-b border-black/10 bg-[#fbfbfa] px-6 py-5 md:px-7">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#9b9a97]">
                 Reservation
               </p>
-              <h2 className="mt-2 text-2xl font-semibold text-[#2f3437]">{currentSelection.roomName}</h2>
+              <h2
+                id="reservation-create-title"
+                className="mt-2 text-2xl font-semibold text-[#2f3437]"
+              >
+                {currentSelection.roomName}
+              </h2>
             </div>
 
             <button
               type="button"
+              autoFocus
               onClick={onClose}
               className="rounded-lg border border-black/10 px-3 py-2 text-sm text-[#6b6a67] transition hover:bg-black/[0.03]"
             >
@@ -247,7 +272,7 @@ export function ReservationCreateModal({
           </div>
         </div>
 
-        <div className="space-y-5 px-6 py-6 md:px-7">
+        <div className="space-y-5 overflow-y-auto px-6 py-6 md:px-7">
           <div className="grid gap-4 md:grid-cols-2">
             <StaticField label="회의실" value={currentSelection.roomName} />
             <StaticField label="날짜" value={currentSelection.date} />

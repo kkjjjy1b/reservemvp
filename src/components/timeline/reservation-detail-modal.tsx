@@ -80,6 +80,20 @@ export function ReservationDetailModal({
 
   useEffect(() => {
     if (!reservationId) {
+      return;
+    }
+
+    const { body } = document;
+    const previousOverflow = body.style.overflow;
+    body.style.overflow = "hidden";
+
+    return () => {
+      body.style.overflow = previousOverflow;
+    };
+  }, [reservationId]);
+
+  useEffect(() => {
+    if (!reservationId) {
       setDetail(null);
       setEditMode(false);
       setShowCancelConfirm(false);
@@ -202,13 +216,18 @@ export function ReservationDetailModal({
 
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
+        if (showCancelConfirm) {
+          setShowCancelConfirm(false);
+          return;
+        }
+
         onClose();
       }
     }
 
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [reservationId, onClose]);
+  }, [reservationId, onClose, showCancelConfirm]);
 
   const reservation = detail?.reservation;
   const colorTheme = reservation ? getReservationColorTheme(reservation.colorKey) : null;
@@ -334,20 +353,28 @@ export function ReservationDetailModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,23,42,0.18)] px-4 py-6 backdrop-blur-[2px]">
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
 
-      <div className="relative z-10 w-full max-w-2xl overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.12)]">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reservation-detail-title"
+        className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.12)]"
+      >
         <div className="border-b border-black/10 bg-[#fbfbfa] px-6 py-5 md:px-7">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#9b9a97]">
                 Reservation Detail
               </p>
-              <h2 className="mt-2 text-2xl font-semibold text-[#2f3437]">
+              <h2
+                id="reservation-detail-title"
+                className="mt-2 text-2xl font-semibold text-[#2f3437]">
                 {reservation?.meetingRoom?.name ?? "예약 상세"}
               </h2>
             </div>
 
             <button
               type="button"
+              autoFocus
               onClick={onClose}
               className="rounded-lg border border-black/10 px-3 py-2 text-sm text-[#6b6a67] transition hover:bg-black/[0.03]"
             >
@@ -356,7 +383,7 @@ export function ReservationDetailModal({
           </div>
         </div>
 
-        <div className="space-y-5 px-6 py-6 md:px-7">
+        <div className="space-y-5 overflow-y-auto px-6 py-6 md:px-7">
           {isLoading && !detail ? (
             <div className="rounded-xl border border-black/10 bg-[#fbfbfa] px-4 py-6 text-sm text-[#6b6a67]">
               예약 정보를 불러오는 중입니다.
@@ -586,11 +613,16 @@ export function ReservationDetailModal({
 
       {showCancelConfirm && detail && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[rgba(15,23,42,0.2)] px-4 backdrop-blur-[2px]">
-          <div className="w-full max-w-md rounded-2xl border border-black/10 bg-white p-6 shadow-[0_18px_48px_rgba(15,23,42,0.12)]">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reservation-cancel-title"
+            className="w-full max-w-md rounded-2xl border border-black/10 bg-white p-6 shadow-[0_18px_48px_rgba(15,23,42,0.12)]"
+          >
             <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#9b9a97]">
               Cancel Reservation
             </p>
-            <h3 className="mt-3 text-xl font-semibold text-[#2f3437]">
+            <h3 id="reservation-cancel-title" className="mt-3 text-xl font-semibold text-[#2f3437]">
               이 예약을 취소할까요?
             </h3>
             <p className="mt-3 text-sm leading-6 text-[#6b6a67]">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useState, useTransition } from "react";
+import { FormEvent, useEffect, useState, useTransition } from "react";
 
 export function LoginForm() {
   const router = useRouter();
@@ -9,11 +9,17 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    router.prefetch("/");
+  }, [router]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage(null);
+    setIsRedirecting(false);
 
     startTransition(async () => {
       const response = await fetch("/api/auth/login", {
@@ -36,8 +42,8 @@ export function LoginForm() {
         return;
       }
 
+      setIsRedirecting(true);
       router.replace("/");
-      router.refresh();
     });
   }
 
@@ -89,10 +95,10 @@ export function LoginForm() {
 
       <button
         type="submit"
-        disabled={isPending}
+        disabled={isPending || isRedirecting}
         className="w-full rounded-xl bg-[#2f3437] px-4 py-3.5 text-sm font-medium text-white transition hover:bg-[#1f2326] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isPending ? "로그인 중..." : "로그인"}
+        {isRedirecting ? "메인으로 이동 중..." : isPending ? "로그인 중..." : "로그인"}
       </button>
     </form>
   );

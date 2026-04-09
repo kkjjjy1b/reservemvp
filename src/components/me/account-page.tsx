@@ -13,7 +13,7 @@ import type { CurrentUserProfile, MyReservationItem } from "@/lib/account/types"
 
 type AccountPageProps = {
   user: CurrentUserProfile;
-  initialReservations: MyReservationItem[];
+  initialReservations: MyReservationItem[] | null;
 };
 
 type ProfileFormState = {
@@ -26,10 +26,11 @@ type ProfileFormState = {
 export function AccountPage({ user, initialReservations }: AccountPageProps) {
   const router = useRouter();
   const [profile, setProfile] = useState(user);
-  const [reservations, setReservations] = useState(initialReservations);
+  const [reservations, setReservations] = useState(initialReservations ?? []);
   const [selectedReservationId, setSelectedReservationId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isReservationsLoading, setIsReservationsLoading] = useState(initialReservations === null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [logoutErrorMessage, setLogoutErrorMessage] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -66,8 +67,19 @@ export function AccountPage({ user, initialReservations }: AccountPageProps) {
     return () => URL.revokeObjectURL(nextPreviewUrl);
   }, [avatarFile]);
 
+  useEffect(() => {
+    if (initialReservations !== null) {
+      return;
+    }
+
+    refreshReservations();
+  // initialReservations is fixed for the page lifetime.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function refreshReservations(successMessage?: string) {
     setErrorMessage(null);
+    setIsReservationsLoading(true);
 
     startRefreshTransition(async () => {
       const response = await fetch("/api/me/reservations", {
@@ -83,10 +95,12 @@ export function AccountPage({ user, initialReservations }: AccountPageProps) {
 
       if (!response.ok || !payload.reservations) {
         setErrorMessage(payload.message ?? "내 예약 목록을 다시 불러오지 못했습니다.");
+        setIsReservationsLoading(false);
         return;
       }
 
       setReservations(payload.reservations);
+      setIsReservationsLoading(false);
 
       if (successMessage) {
         setToastMessage(successMessage);
@@ -425,7 +439,11 @@ export function AccountPage({ user, initialReservations }: AccountPageProps) {
               </div>
             )}
 
-            {reservations.length === 0 ? (
+            {isReservationsLoading ? (
+              <div className="mt-5 rounded-xl border border-black/10 bg-[#fbfbfa] px-5 py-8 text-sm text-[#6b6a67]">
+                내 예약 목록을 불러오는 중입니다.
+              </div>
+            ) : reservations.length === 0 ? (
               <div className="mt-5 rounded-xl border border-dashed border-black/10 bg-[#fbfbfa] px-5 py-8 text-sm text-[#6b6a67]">
                 아직 예약한 내역이 없습니다.
               </div>
