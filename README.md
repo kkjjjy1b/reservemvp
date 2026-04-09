@@ -56,7 +56,7 @@ npm run dev
 ## 테스트 계정
 - `test@cheongnim.com` / `1234`
 
-운영 사용자 계정 목록은 README에 공개하지 않는다.
+운영 사용자 계정 목록은 `prisma/seed.js` 기준으로 관리한다.
 
 ## 현재 기본 데이터
 ### 회의실

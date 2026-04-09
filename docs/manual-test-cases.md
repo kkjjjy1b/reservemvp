@@ -2,8 +2,8 @@
 
 ## 공통 테스트 데이터 가정
 - 활성 사용자 2명
-  - 사용자 A: `user-a@company.com`
-  - 사용자 B: `user-b@company.com`
+  - 사용자 A: `test@cheongnim.com`
+  - 사용자 B: `sjlee@cheongnim.com`
 - 활성 회의실 2개 이상
   - 회의실 1: Room A
   - 회의실 2: Room B

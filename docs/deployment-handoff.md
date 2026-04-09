@@ -27,10 +27,11 @@
 - `쏘왓` / `5명`
 
 ### 테스트 사용자
-- `user-a@company.com` / `Welcome123!` / `김민지`
-- `user-b@company.com` / `Welcome123!` / `박준호`
-- `user-c@company.com` / `Welcome123!` / `이서연`
-- `user-d@company.com` / `Welcome123!` / `최도윤`
+- `test@cheongnim.com` / `1234` / `테스트 계정`
+
+### 운영 사용자
+- 운영 기본 사용자 목록은 `prisma/seed.js` 기준으로 관리한다.
+- 현재 seed에는 청림 운영 사용자 29명과 테스트 계정 1명이 들어간다.
 
 ## 4. 배포 전 개발자 작업
 1. Git 배포용 저장소를 `project-root` 기준으로 연결한다.

@@ -3,32 +3,188 @@ const bcrypt = require("bcryptjs");
 
 const prisma = new PrismaClient();
 
-const INITIAL_PASSWORD = "Welcome123!";
+const INITIAL_PASSWORD = "1234";
 const SALT_ROUNDS = 12;
 const TIME_ZONE = "Asia/Seoul";
 
 const sampleUsers = [
   {
-    companyEmail: "user-a@company.com",
-    name: "김민지",
+    companyEmail: "test@cheongnim.com",
+    name: "테스트 계정",
     isActive: true,
     passwordChangedAt: null,
   },
   {
-    companyEmail: "user-b@company.com",
-    name: "박준호",
+    companyEmail: "sjlee@cheongnim.com",
+    name: "이승진",
     isActive: true,
     passwordChangedAt: null,
   },
   {
-    companyEmail: "user-c@company.com",
-    name: "이서연",
+    companyEmail: "sjlee2262@cheongnim.com",
+    name: "이승재",
     isActive: true,
-    passwordChangedAt: new Date(),
+    passwordChangedAt: null,
   },
   {
-    companyEmail: "user-d@company.com",
-    name: "최도윤",
+    companyEmail: "jhkim@cheongnim.com",
+    name: "김준호",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "shlee@cheongnim.com",
+    name: "이상헌",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "hjma@cheongnim.com",
+    name: "마형준",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "wjjeong@cheongnim.com",
+    name: "정완주",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "thkim@cheongnim.com",
+    name: "김태현",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "bkkim@cheongnim.com",
+    name: "김보경",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "sghan@cheongnim.com",
+    name: "한슬기",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "hhyu@cheongnim.com",
+    name: "유환희",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "jhchoi@cheongnim.com",
+    name: "최장혁",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "shjeon@cheongnim.com",
+    name: "전서현",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "syyoon@cheongnim.com",
+    name: "윤수연",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "yjkang@cheongnim.com",
+    name: "강예지",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "ihkim@cheongnim.com",
+    name: "김인혜",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "smchoi@cheongnim.com",
+    name: "최소민",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "hgbang@cheongnim.com",
+    name: "방현경",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "yngal@cheongnim.com",
+    name: "갈유나",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "jykim@cheongnim.com",
+    name: "김정연",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "jjkim@cheongnim.com",
+    name: "김정주",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "dhkim@cheongnim.com",
+    name: "김동현",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "shyoon@cheongnim.com",
+    name: "윤상현",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "shkim@cheongnim.com",
+    name: "김성헌",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "hkoh@cheongnim.com",
+    name: "오현경",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "yhchoi@cheongnim.com",
+    name: "최용환",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "bnlee@cheongnim.com",
+    name: "이빛나",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "jgkim@cheongnim.com",
+    name: "김정길",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "hmjeon@cheongnim.com",
+    name: "전현민",
+    isActive: true,
+    passwordChangedAt: null,
+  },
+  {
+    companyEmail: "cijo@cheongnim.com",
+    name: "조찬익",
     isActive: true,
     passwordChangedAt: null,
   },
@@ -279,39 +435,6 @@ async function clearSampleReservations(userIds, roomIds) {
 
 }
 
-async function createReservation({
-  userId,
-  roomId,
-  dateKey,
-  startTime,
-  endTime,
-  purpose,
-  status = ReservationStatus.active,
-  colorKey = SAMPLE_COLOR_KEYS[0],
-  participantUserIds = [],
-}) {
-  return prisma.reservation.create({
-    data: {
-      userId,
-      meetingRoomId: roomId,
-      reservationDate: toReservationDate(dateKey),
-      startDatetime: toUtcIso(dateKey, startTime),
-      endDatetime: toUtcIso(dateKey, endTime),
-      colorKey,
-      purpose,
-      status,
-      participants:
-        participantUserIds.length > 0
-          ? {
-              create: participantUserIds.map((participantUserId) => ({
-                userId: participantUserId,
-              })),
-            }
-          : undefined,
-    },
-  });
-}
-
 async function main() {
   const passwordHash = await bcrypt.hash(INITIAL_PASSWORD, SALT_ROUNDS);
   const users = await upsertUsers(passwordHash);
@@ -322,118 +445,10 @@ async function main() {
     Object.values(rooms).map((room) => room.id),
   );
 
-  const todayScenario = buildTodayScenario();
-  const tomorrowKey = addDays(todayScenario.todayKey, 1);
-  const dayAfterTomorrowKey = addDays(todayScenario.todayKey, 2);
-
-  await createReservation({
-    userId: users["user-a@company.com"].id,
-    roomId: rooms["두잇"].id,
-    dateKey: todayScenario.todayKey,
-    startTime: todayScenario.futureEditableStart,
-    endTime: todayScenario.futureEditableEnd,
-    purpose: "내 예약 편집 테스트",
-    colorKey: SAMPLE_COLOR_KEYS[0],
-  });
-
-  await createReservation({
-    userId: users["user-a@company.com"].id,
-    roomId: rooms["쏘왓"].id,
-    dateKey: todayScenario.todayKey,
-    startTime: todayScenario.pastLockedStart,
-    endTime: todayScenario.pastLockedEnd,
-    purpose: "시작 시간 경과로 수정 불가",
-    colorKey: SAMPLE_COLOR_KEYS[1],
-  });
-
-  await createReservation({
-    userId: users["user-a@company.com"].id,
-    roomId: rooms["와이낫"].id,
-    dateKey: todayScenario.todayKey,
-    startTime: todayScenario.imminentStart,
-    endTime: todayScenario.imminentEnd,
-    purpose: "시작 임박 예약",
-    colorKey: SAMPLE_COLOR_KEYS[2],
-  });
-
-  await createReservation({
-    userId: users["user-b@company.com"].id,
-    roomId: rooms["와이낫"].id,
-    dateKey: todayScenario.todayKey,
-    startTime: todayScenario.otherReservationStart,
-    endTime: todayScenario.otherReservationEnd,
-    purpose: "남의 예약 상세 조회",
-    colorKey: SAMPLE_COLOR_KEYS[3],
-    participantUserIds: [
-      users["user-c@company.com"].id,
-      users["user-d@company.com"].id,
-    ],
-  });
-
-  await createReservation({
-    userId: users["user-b@company.com"].id,
-    roomId: rooms["와이낫"].id,
-    dateKey: tomorrowKey,
-    startTime: "10:00",
-    endTime: "11:00",
-    purpose: "중복 예약 차단 기준 예약",
-    colorKey: SAMPLE_COLOR_KEYS[4],
-  });
-
-  await createReservation({
-    userId: users["user-a@company.com"].id,
-    roomId: rooms["두잇"].id,
-    dateKey: tomorrowKey,
-    startTime: "10:00",
-    endTime: "11:00",
-    purpose: "다른 회의실 동시간대 허용",
-    colorKey: SAMPLE_COLOR_KEYS[0],
-  });
-
-  await createReservation({
-    userId: users["user-c@company.com"].id,
-    roomId: rooms["쏘왓"].id,
-    dateKey: tomorrowKey,
-    startTime: "15:00",
-    endTime: "16:00",
-    purpose: "연속 예약 1",
-    colorKey: SAMPLE_COLOR_KEYS[1],
-  });
-
-  await createReservation({
-    userId: users["user-d@company.com"].id,
-    roomId: rooms["쏘왓"].id,
-    dateKey: tomorrowKey,
-    startTime: "16:00",
-    endTime: "17:00",
-    purpose: "연속 예약 2",
-    colorKey: SAMPLE_COLOR_KEYS[2],
-  });
-
-  await createReservation({
-    userId: users["user-a@company.com"].id,
-    roomId: rooms["와이낫"].id,
-    dateKey: dayAfterTomorrowKey,
-    startTime: "09:00",
-    endTime: "10:00",
-    purpose: "취소된 예약 예시",
-    status: ReservationStatus.cancelled,
-    colorKey: SAMPLE_COLOR_KEYS[3],
-  });
-
   console.log("Seed completed.");
-  console.log(`Initial password for all sample users: ${INITIAL_PASSWORD}`);
-  console.log("Primary test account: user-a@company.com / Welcome123!");
-  console.log(`Today (KST): ${todayScenario.todayKey}`);
-  console.log(
-    `Editable reservation for user-a: 두잇 ${todayScenario.futureEditableStart}-${todayScenario.futureEditableEnd}`,
-  );
-  console.log(
-    `Locked reservation for user-a: 쏘왓 ${todayScenario.pastLockedStart}-${todayScenario.pastLockedEnd}`,
-  );
-  console.log(
-    `Other user's reservation: 와이낫 ${todayScenario.otherReservationStart}-${todayScenario.otherReservationEnd}`,
-  );
+  console.log(`Initial password for all seeded users: ${INITIAL_PASSWORD}`);
+  console.log("Primary test account: test@cheongnim.com / 1234");
+  console.log(`Seeded users: ${Object.keys(users).length}`);
 }
 
 main()
