@@ -4,7 +4,7 @@ const bcrypt = require("bcrypt");
 const prisma = new PrismaClient();
 
 const INITIAL_PASSWORD = "1234";
-const SALT_ROUNDS = 12;
+const SALT_ROUNDS = 10;
 const TIME_ZONE = "Asia/Seoul";
 
 const sampleUsers = [
