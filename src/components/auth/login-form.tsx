@@ -1,10 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { FormEvent, useState, useTransition } from "react";
 
 export function LoginForm() {
-  const router = useRouter();
   const [companyEmail, setCompanyEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -35,11 +33,12 @@ export function LoginForm() {
 
       if (!response.ok) {
         setErrorMessage(payload.message ?? "로그인에 실패했습니다.");
+        setIsRedirecting(false);
         return;
       }
 
       setIsRedirecting(true);
-      router.replace("/");
+      window.location.assign("/");
     });
   }
 

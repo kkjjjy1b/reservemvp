@@ -241,8 +241,7 @@ export function AccountPage({ user, initialReservations }: AccountPageProps) {
         return;
       }
 
-      router.replace("/login");
-      router.refresh();
+      window.location.assign("/login");
     });
   }
 

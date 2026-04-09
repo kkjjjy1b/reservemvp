@@ -8,7 +8,6 @@ type LogoutButtonProps = {
 };
 
 export function LogoutButton({ className }: LogoutButtonProps) {
-  const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -28,8 +27,7 @@ export function LogoutButton({ className }: LogoutButtonProps) {
         return;
       }
 
-      router.replace("/login");
-      router.refresh();
+      window.location.assign("/login");
     });
   }
 
