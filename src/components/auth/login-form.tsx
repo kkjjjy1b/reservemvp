@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState, useTransition } from "react";
+import { FormEvent, useState, useTransition } from "react";
 
 export function LoginForm() {
   const router = useRouter();
@@ -11,10 +11,6 @@ export function LoginForm() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [isPending, startTransition] = useTransition();
-
-  useEffect(() => {
-    router.prefetch("/");
-  }, [router]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
