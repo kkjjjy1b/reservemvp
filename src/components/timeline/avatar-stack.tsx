@@ -8,7 +8,13 @@ type AvatarStackProps = {
   owner?: ReservationPerson | null;
   participants?: ReservationPerson[];
   maxVisible?: number;
-  size?: "sm" | "md";
+  size?: "xs" | "sm" | "md";
+  className?: string;
+  stackClassName?: string;
+  avatarClassName?: string;
+  firstAvatarClassName?: string;
+  overflowClassName?: string;
+  overflowLabel?: (hiddenCount: number) => string;
 };
 
 export function AvatarStack({
@@ -16,6 +22,12 @@ export function AvatarStack({
   participants = [],
   maxVisible = 4,
   size = "sm",
+  className,
+  stackClassName,
+  avatarClassName,
+  firstAvatarClassName,
+  overflowClassName,
+  overflowLabel,
 }: AvatarStackProps) {
   const items: AvatarStackItem[] = [owner, ...participants]
     .filter((person): person is ReservationPerson => Boolean(person?.name))
@@ -27,5 +39,18 @@ export function AvatarStack({
       description: index === 0 && owner ? "예약자" : "참여자",
     }));
 
-  return <SharedAvatarStack items={items} maxVisible={maxVisible} size={size} emptyLabel="" />;
+  return (
+    <SharedAvatarStack
+      items={items}
+      maxVisible={maxVisible}
+      size={size}
+      className={className}
+      stackClassName={stackClassName}
+      avatarClassName={avatarClassName}
+      firstAvatarClassName={firstAvatarClassName}
+      overflowClassName={overflowClassName}
+      overflowLabel={overflowLabel}
+      emptyLabel=""
+    />
+  );
 }

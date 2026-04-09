@@ -24,8 +24,8 @@
     "seed": "node prisma/seed.js"
   },
   "dependencies": {
-    "@vercel/blob": "^1.1.1",
     "@prisma/client": "^6.6.0",
+    "@vercel/blob": "^1.1.1",
     "bcryptjs": "^3.0.2",
     "next": "^15.2.2",
     "react": "^19.0.0",

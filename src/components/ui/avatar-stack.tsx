@@ -11,6 +11,10 @@ type AvatarStackProps = {
   size?: "xs" | "sm" | "md" | "lg";
   showNames?: boolean;
   className?: string;
+  stackClassName?: string;
+  avatarClassName?: string;
+  firstAvatarClassName?: string;
+  overflowClassName?: string;
   emptyLabel?: string;
   overflowLabel?: (hiddenCount: number) => string;
 };
@@ -37,6 +41,10 @@ export function AvatarStack({
   size = "sm",
   showNames = false,
   className = "",
+  stackClassName = "",
+  avatarClassName = "border-white",
+  firstAvatarClassName = "ring-2 ring-white",
+  overflowClassName = "",
   emptyLabel = "참여자 없음",
   overflowLabel = (hiddenCount) => `+${hiddenCount}`,
 }: AvatarStackProps) {
@@ -49,7 +57,7 @@ export function AvatarStack({
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      <div className={`flex ${SIZE_TO_STACK_CLASS[size]} items-center`}>
+      <div className={`flex ${SIZE_TO_STACK_CLASS[size]} items-center ${stackClassName}`}>
         {visibleItems.map((item, index) => (
           <Avatar
             key={item.id}
@@ -58,13 +66,13 @@ export function AvatarStack({
             avatarSeed={item.avatarSeed ?? item.id}
             size={size}
             title={item.description ?? item.name}
-            className={`border-white ${index === 0 ? "ring-2 ring-white" : ""}`}
+            className={`${avatarClassName} ${index === 0 ? firstAvatarClassName : ""}`}
           />
         ))}
 
         {hiddenCount > 0 && (
           <div
-            className={`inline-flex items-center justify-center rounded-full border border-black/5 bg-[#f3f1ee] font-semibold text-[#6b6a67] ${SIZE_TO_TEXT_CLASS[size]} ${getSizeClassName(size)}`}
+            className={`inline-flex items-center justify-center rounded-full border border-black/5 bg-[#f3f1ee] font-semibold text-[#6b6a67] ${SIZE_TO_TEXT_CLASS[size]} ${getSizeClassName(size)} ${overflowClassName}`}
             title={`${hiddenCount}명 더 보기`}
             aria-label={`${hiddenCount}명 더 보기`}
           >

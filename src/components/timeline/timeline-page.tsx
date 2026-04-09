@@ -813,9 +813,15 @@ export function TimelinePage({
             : []
         }
         onClose={() => setSelectedSlot(null)}
-        onCreated={(message, reservation) => {
-          applyReservationMutation("create", reservation);
+        onCreated={({ message, reservations, isRecurring }) => {
+          if (!isRecurring && reservations.length === 1) {
+            applyReservationMutation("create", reservations[0]);
+            setToastMessage(message);
+            return;
+          }
+
           setToastMessage(message);
+          refreshTimeline();
         }}
       />
     </main>
@@ -935,6 +941,8 @@ function TimelineReservationCard({
   onClick: (detail: ReservationDetailResponse) => void;
 }) {
   const colorTheme = getReservationColorTheme(reservation.colorKey);
+  const isCompactCard = reservation.slotSpan <= 1;
+  const totalAttendeeCount = 1 + (reservation.participants?.length ?? 0);
   const initialDetail = useMemo<ReservationDetailResponse>(
     () => ({
       reservation: {
@@ -977,37 +985,78 @@ function TimelineReservationCard({
         height: `${reservation.slotSpan * SLOT_HEIGHT_PX - 8}px`,
       }}
     >
-      <div className="flex h-full">
-        <div className={`w-[4px] shrink-0 ${colorTheme.line}`} />
-        <div className="flex flex-1 flex-col px-3 py-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="truncate text-[15px] font-semibold text-[#2f3437]">
-                {reservation.title ?? "예약"}
+      <span
+        aria-hidden="true"
+        className={`absolute bottom-3 left-3 top-3 w-1.5 rounded-full ${colorTheme.line}`}
+      />
+      {isCompactCard ? (
+        <div className="flex h-full items-center justify-between gap-3 pl-8 pr-3">
+          <div className="min-w-0 flex-1">
+            <p className="min-w-0 truncate text-[14px] font-semibold leading-[1.05] text-[#2f3437]">
+              {reservation.title ?? "예약"}
+            </p>
+            <div className="mt-1 flex min-w-0 items-center gap-2 text-[11px] leading-none text-[#787774]">
+              <p className="shrink-0">
+                {reservation.startTime} - {reservation.endTime}
               </p>
+              <span aria-hidden="true" className="h-1 w-1 rounded-full bg-[#d4d2cd]" />
+              <div className="flex min-w-0 items-center gap-1.5">
+                <AvatarStack
+                  owner={reservation.user}
+                  participants={reservation.participants}
+                  maxVisible={2}
+                  size="xs"
+                  className="gap-1.5"
+                  stackClassName="-space-x-1"
+                  avatarClassName="border-white ring-1 ring-white"
+                  firstAvatarClassName="border-white ring-1 ring-white"
+                  overflowClassName="text-[10px]"
+                />
+                <span className="shrink-0 text-[11px] text-[#8b8883]">
+                  {totalAttendeeCount}명
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {reservation.isMine && (
+            <span className="shrink-0 rounded-full bg-[#37352f] px-2.5 py-1 text-[10px] font-medium leading-none text-white">
+              내 예약
+            </span>
+          )}
+        </div>
+      ) : (
+        <div className="flex h-full pl-8 pr-3 py-3">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="min-w-0">
+              <div className="flex min-w-0 items-center gap-2">
+                <p className="min-w-0 truncate text-[15px] font-semibold text-[#2f3437]">
+                  {reservation.title ?? "예약"}
+                </p>
+              </div>
               <p className="mt-1 text-[13px] text-[#787774]">
                 {reservation.startTime} - {reservation.endTime}
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="mt-3 flex shrink-0 items-center gap-2">
               {reservation.isMine && (
-                <span className="rounded-full bg-[#37352f] px-2 py-1 text-[10px] font-medium uppercase tracking-[0.08em] text-white">
+                <span className="rounded-full bg-[#37352f] px-2.5 py-1 text-[10px] font-medium leading-none text-white">
                   내 예약
                 </span>
               )}
-              <span className={`inline-flex h-2.5 w-2.5 rounded-full ${colorTheme.line}`} />
             </div>
           </div>
-
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <AvatarStack owner={reservation.user} participants={reservation.participants} />
-            <span className="text-[11px] text-[#9b9a97]">
-              {1 + (reservation.participants?.length ?? 0)}명
-            </span>
-          </div>
         </div>
-      </div>
+      )}
+      {!isCompactCard && (
+        <div className="absolute bottom-3 left-8 right-4 flex items-center justify-between gap-3">
+          <AvatarStack owner={reservation.user} participants={reservation.participants} />
+          <span className="text-[11px] text-[#9b9a97]">
+            {totalAttendeeCount}명
+          </span>
+        </div>
+      )}
     </button>
   );
 }
