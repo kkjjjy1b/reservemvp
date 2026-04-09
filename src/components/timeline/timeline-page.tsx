@@ -15,7 +15,6 @@ import {
 import { getTimelineSlotIndex } from "@/lib/reservations/datetime";
 import type {
   EmptySlotSelection,
-  MeetingRoomsResponse,
   MutationReservation,
   ReservationDetailResponse,
   TimelineReservation,
@@ -27,6 +26,7 @@ type TimelinePageProps = {
   selectedDate: string;
   userId?: string | null;
   userName: string | null;
+  initialTimelineData: TimelineResponse | null;
   isAuthenticated: boolean;
 };
 
@@ -56,15 +56,17 @@ export function TimelinePage({
   selectedDate,
   userId = null,
   userName,
+  initialTimelineData,
   isAuthenticated,
 }: TimelinePageProps) {
   const timelineScrollRef = useRef<HTMLDivElement | null>(null);
   const mobileTimelineScrollRef = useRef<HTMLDivElement | null>(null);
   const desktopTimelineHeaderRef = useRef<HTMLDivElement | null>(null);
   const [currentDate, setCurrentDate] = useState(selectedDate);
-  const [roomShells, setRoomShells] = useState<TimelineRoom[]>([]);
-  const [timelineData, setTimelineData] = useState<TimelineResponse | null>(null);
-  const [isTimelineLoading, setIsTimelineLoading] = useState(isAuthenticated);
+  const [timelineData, setTimelineData] = useState<TimelineResponse | null>(initialTimelineData);
+  const [isTimelineLoading, setIsTimelineLoading] = useState(
+    isAuthenticated && !initialTimelineData,
+  );
   const [selectedMobileRoomId, setSelectedMobileRoomId] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<EmptySlotSelection | null>(null);
   const [selectedReservationId, setSelectedReservationId] = useState<string | null>(null);
@@ -161,52 +163,16 @@ export function TimelinePage({
 
   useEffect(() => {
     setCurrentDate(selectedDate);
-  }, [selectedDate]);
+    setTimelineData(initialTimelineData);
+    setIsTimelineLoading(isAuthenticated && !initialTimelineData);
+  }, [initialTimelineData, isAuthenticated, selectedDate]);
 
   useEffect(() => {
     if (!isAuthenticated) {
-      setRoomShells([]);
       setTimelineData(null);
       setIsTimelineLoading(false);
       return;
     }
-
-    let cancelled = false;
-
-    async function loadMeetingRooms() {
-      try {
-        const response = await fetch("/api/meeting-rooms", {
-          method: "GET",
-          credentials: "include",
-          cache: "force-cache",
-        });
-
-        if (!response.ok) {
-          return;
-        }
-
-        const payload = (await response.json()) as MeetingRoomsResponse;
-
-        if (!cancelled) {
-          setRoomShells(
-            payload.meetingRooms.map((room) => ({
-              ...room,
-              reservations: [],
-            })),
-          );
-        }
-      } catch {
-        if (!cancelled) {
-          setRoomShells([]);
-        }
-      }
-    }
-
-    loadMeetingRooms();
-
-    return () => {
-      cancelled = true;
-    };
   }, [isAuthenticated]);
 
   useEffect(() => {
@@ -216,9 +182,31 @@ export function TimelinePage({
       return;
     }
 
+    if (currentDate === selectedDate && initialTimelineData) {
+      return;
+    }
+
     let cancelled = false;
 
     async function loadTimeline() {
+      const shouldShowRoomShells =
+        timelineData !== null && timelineData.date !== currentDate;
+
+      if (shouldShowRoomShells) {
+        setTimelineData((current) =>
+          current
+            ? {
+                ...current,
+                date: currentDate,
+                rooms: current.rooms.map((room) => ({
+                  ...room,
+                  reservations: [],
+                })),
+              }
+            : current,
+        );
+      }
+
       setIsTimelineLoading(true);
 
       try {
@@ -256,7 +244,7 @@ export function TimelinePage({
     return () => {
       cancelled = true;
     };
-  }, [currentDate, isAuthenticated]);
+  }, [currentDate, initialTimelineData, isAuthenticated, selectedDate]);
 
   function updateDate(nextDate: string) {
     setSelectedSlot(null);
@@ -280,7 +268,6 @@ export function TimelinePage({
     setSelectedSlot(null);
     setSelectedReservationId(null);
     setSelectedReservationDetail(null);
-    setTimelineData(null);
     setIsTimelineLoading(true);
     if (message) {
       setToastMessage(message);
@@ -360,7 +347,7 @@ export function TimelinePage({
     });
   }
 
-  const visibleRooms = timelineData?.rooms ?? roomShells;
+  const visibleRooms = timelineData?.rooms ?? [];
   const activeDate = timelineData?.date ?? currentDate;
   const selectedMobileRoom =
     visibleRooms.find((room) => room.id === selectedMobileRoomId) ?? visibleRooms[0] ?? null;

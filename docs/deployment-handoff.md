@@ -35,18 +35,25 @@
 
 ## 4. 배포 전 개발자 작업
 1. Git 배포용 저장소를 `project-root` 기준으로 연결한다.
-2. 운영 PostgreSQL 인스턴스를 준비한다.
-3. 운영 환경변수를 설정한다.
-4. 운영 DB에 Prisma migration을 적용한다.
-5. 운영용 초기 회의실 / 사용자 데이터를 입력한다.
-6. `npm run build`로 프로덕션 빌드를 확인한다.
-7. 배포 후 운영 URL에서 수동 검수를 진행한다.
+2. 실제 운영 도메인 `reservemvp.vercel.app`가 연결된 Vercel 프로젝트가 `reservemvp`인지 먼저 확인한다.
+3. 운영 PostgreSQL 인스턴스를 준비한다.
+4. 운영 환경변수를 설정한다.
+5. 운영 DB에 Prisma migration을 적용한다.
+6. 운영 사용자 목록과 초기 비밀번호를 운영 DB에 upsert한다.
+7. 운영용 초기 회의실 데이터를 입력한다.
+8. `npm run build`로 프로덕션 빌드를 확인한다.
+9. 배포 후 운영 URL에서 수동 검수를 진행한다.
 
 ## 4-1. Git 연결 상태
 - `project-root`는 2026-03-13에 독립 Git 저장소로 초기화되었다.
 - 원격 `origin`은 GitHub `https://github.com/kkjjjy1b/reservemvp.git`에 연결되어 있다.
 - 기본 브랜치는 `main`이다.
 - 상위 폴더 `/Users/jaydenkim/Desktop/Codex/reservMVP`의 Git과 분리해서, 배포 단위는 `project-root`만 사용한다.
+
+## 4-2. Vercel 프로젝트 주의사항
+- 현재 Vercel에는 `project-root`와 `reservemvp` 두 프로젝트가 존재한다.
+- 실제 운영 도메인 `https://reservemvp.vercel.app`는 `reservemvp` 프로젝트를 본다.
+- CLI로 env를 확인하거나 운영 DB를 만질 때는 반드시 `reservemvp` 프로젝트에 link된 상태인지 먼저 확인해야 한다.
 
 ## 5. 필수 환경변수
 - `DATABASE_URL`
@@ -70,8 +77,10 @@
 ### 기술 체크
 - `project-root` 원격 저장소 연결 완료
 - 배포 대상 브랜치 확정
+- 실제 운영 Vercel 프로젝트가 `reservemvp`인지 확인
 - 운영 DB 접속 가능
 - migration 적용 완료
+- 운영 사용자 upsert / 초기 비밀번호 동기화 완료
 - 기본 회의실 데이터 입력 완료
 - 기본 사용자 데이터 입력 완료
 - `npm run build` 통과
@@ -116,6 +125,8 @@
 - 최근 배포 이력
 - 최근 migration 적용 여부
 - fresh env에서 로그인 500이 보이면 `team/avatar/participants` 관련 migration 반영 여부와 `npm run prisma:deploy` 적용 여부를 먼저 확인
+- 로그인만 `401`로 실패하면 운영 DB의 사용자 존재 여부보다 먼저 비밀번호 동기화 상태를 확인
+- Vercel CLI 점검 시 현재 link 대상이 `reservemvp` 프로젝트인지 먼저 확인
 
 ## 9. 권장 다음 스레드
 - 배포 전용 스레드: 운영 DB, 환경변수, 배포 절차 진행

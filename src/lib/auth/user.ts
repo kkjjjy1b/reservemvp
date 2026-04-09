@@ -18,13 +18,26 @@ export type AuthSessionUser = {
   team?: AuthSessionTeam;
 };
 
-export async function findActiveUserByEmail(companyEmail: string) {
-  return prisma.user.findFirst({
+type AuthLoginUser = AuthSessionUser & {
+  passwordHash: string;
+};
+
+export async function findActiveUserByEmail(companyEmail: string): Promise<AuthLoginUser | null> {
+  const user = await prisma.user.findUnique({
     where: {
       companyEmail,
-      isActive: true,
     },
-    include: {
+    select: {
+      id: true,
+      companyEmail: true,
+      name: true,
+      isActive: true,
+      passwordHash: true,
+      avatarUrl: true,
+      avatarStorageKey: true,
+      passwordChangedAt: true,
+      createdAt: true,
+      updatedAt: true,
       team: {
         select: {
           id: true,
@@ -33,13 +46,18 @@ export async function findActiveUserByEmail(companyEmail: string) {
       },
     },
   });
+
+  if (!user || !user.isActive) {
+    return null;
+  }
+
+  return user;
 }
 
 export async function findActiveSessionUserById(id: string) {
-  return prisma.user.findFirst({
+  const user = await prisma.user.findUnique({
     where: {
       id,
-      isActive: true,
     },
     select: {
       id: true,
@@ -59,6 +77,12 @@ export async function findActiveSessionUserById(id: string) {
       },
     },
   });
+
+  if (!user || !user.isActive) {
+    return null;
+  }
+
+  return user;
 }
 
 export function getAvatarSeed(user: Pick<AuthSessionUser, "id" | "companyEmail">) {

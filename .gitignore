@@ -3,8 +3,10 @@ node_modules
 .next
 .env
 .env.local
+.env.production.vercel
 .tools
 dist
 coverage
 tsconfig.tsbuildinfo
 *.log
+.vercel

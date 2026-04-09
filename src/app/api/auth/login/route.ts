@@ -36,11 +36,12 @@ export async function POST(request: NextRequest) {
       return unauthorized("이메일 또는 비밀번호가 올바르지 않습니다.");
     }
 
-    const { token, expiresAt } = await createSession(sanitizeUser(user), rememberMe);
+    const sanitizedUser = sanitizeUser(user);
+    const { token, expiresAt } = await createSession(sanitizedUser, rememberMe);
     await setSessionCookie(token, expiresAt, rememberMe);
 
     return NextResponse.json({
-      user: sanitizeUser(user),
+      user: sanitizedUser,
     });
   } catch (error) {
     console.error("POST /api/auth/login failed", error);
