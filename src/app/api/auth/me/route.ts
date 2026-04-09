@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/auth/session";
 import { sanitizeUser } from "@/lib/auth/user";
 
-export const preferredRegion = "icn1";
+export const preferredRegion = "sin1";
 
 export async function GET() {
   const session = await getCurrentSession();

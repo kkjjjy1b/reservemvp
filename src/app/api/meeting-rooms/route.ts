@@ -4,7 +4,7 @@ import { requireCurrentSession } from "@/lib/auth/session";
 import { unauthorized, serverError } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 
-export const preferredRegion = "icn1";
+export const preferredRegion = "sin1";
 
 export async function GET() {
   try {

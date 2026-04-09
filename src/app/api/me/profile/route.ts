@@ -12,7 +12,7 @@ type UpdateProfileBody = {
   newPassword?: string;
 };
 
-export const preferredRegion = "icn1";
+export const preferredRegion = "sin1";
 
 export async function PATCH(request: NextRequest) {
   try {

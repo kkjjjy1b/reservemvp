@@ -11,7 +11,7 @@ import {
 import { badRequest, serverError, unauthorized } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 
-export const preferredRegion = "icn1";
+export const preferredRegion = "sin1";
 
 function serializeProfileUser(user: ReturnType<typeof sanitizeUser>) {
   return {

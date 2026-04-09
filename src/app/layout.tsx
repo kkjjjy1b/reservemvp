@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: "사내 회의실 예약 웹 서비스 MVP",
 };
 
-export const preferredRegion = "icn1";
+export const preferredRegion = "sin1";
 
 type RootLayoutProps = {
   children: ReactNode;

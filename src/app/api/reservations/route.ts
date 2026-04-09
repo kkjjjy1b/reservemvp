@@ -42,7 +42,7 @@ type CreateReservationBody = {
   repeatEndDate?: string;
 };
 
-export const preferredRegion = "icn1";
+export const preferredRegion = "sin1";
 
 const RESERVATION_INCLUDE = {
   user: {
