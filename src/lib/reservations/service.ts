@@ -1,4 +1,5 @@
 import { ReservationStatus } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
 
@@ -91,7 +92,32 @@ export async function getDailyReservations(reservationDate: string) {
   });
 }
 
+const getCachedActiveMeetingRooms = unstable_cache(
+  async () =>
+    prisma.meetingRoom.findMany({
+      where: {
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        capacity: true,
+        location: true,
+        description: true,
+      },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    }),
+  ["active-meeting-rooms"],
+  {
+    revalidate: 60 * 60,
+  },
+);
+
 export async function getActiveMeetingRooms() {
+  return getCachedActiveMeetingRooms();
+}
+
+export async function getFreshActiveMeetingRooms() {
   return prisma.meetingRoom.findMany({
     where: {
       isActive: true,

@@ -35,7 +35,7 @@
 
 ## 4. 배포 전 개발자 작업
 1. Git 배포용 저장소를 `project-root` 기준으로 연결한다.
-2. 실제 운영 도메인 `reservemvp.vercel.app`가 연결된 Vercel 프로젝트가 `reservemvp`인지 먼저 확인한다.
+2. 실제 운영 커스텀 도메인이 연결된 Vercel 프로젝트가 `reservemvp`인지 먼저 확인한다.
 3. 운영 PostgreSQL 인스턴스를 준비한다.
 4. 운영 환경변수를 설정한다.
 5. 운영 DB에 Prisma migration을 적용한다.
@@ -52,7 +52,7 @@
 
 ## 4-2. Vercel 프로젝트 주의사항
 - 현재 Vercel에는 `project-root`와 `reservemvp` 두 프로젝트가 존재한다.
-- 실제 운영 도메인 `https://reservemvp.vercel.app`는 `reservemvp` 프로젝트를 본다.
+- 실제 운영 커스텀 도메인이 `reservemvp` 프로젝트를 보도록 연결되어 있는지 먼저 확인한다.
 - CLI로 env를 확인하거나 운영 DB를 만질 때는 반드시 `reservemvp` 프로젝트에 link된 상태인지 먼저 확인해야 한다.
 
 ## 5. 필수 환경변수

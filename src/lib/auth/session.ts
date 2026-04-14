@@ -26,6 +26,27 @@ type CurrentSession = {
   rememberMe: boolean;
 };
 
+type SessionClaimsUser = Pick<
+  AuthSessionUser,
+  | "id"
+  | "companyEmail"
+  | "name"
+  | "isActive"
+  | "passwordChangedAt"
+  | "createdAt"
+  | "updatedAt"
+> & {
+  avatarUrl: null;
+  avatarStorageKey: null;
+  team: null;
+};
+
+type SessionClaims = {
+  user: SessionClaimsUser;
+  expiresAt: Date;
+  rememberMe: boolean;
+};
+
 export function getSessionExpiryDate(rememberMe = false) {
   return new Date(
     Date.now() + (rememberMe ? REMEMBERED_SESSION_DURATION_MS : SESSION_DURATION_MS),
@@ -146,7 +167,7 @@ export async function readSessionTokenFromCookie() {
   return cookieStore.get(SESSION_COOKIE_NAME)?.value ?? null;
 }
 
-export async function getCurrentSession() {
+export async function readSessionClaims(): Promise<SessionClaims | null> {
   const token = await readSessionTokenFromCookie();
 
   if (!token) {
@@ -165,7 +186,34 @@ export async function getCurrentSession() {
     return null;
   }
 
-  const currentUser = await findActiveSessionUserById(payload.sub);
+  return {
+    user: {
+      id: payload.sub,
+      companyEmail: payload.companyEmail,
+      name: payload.name,
+      isActive: payload.isActive,
+      avatarUrl: null,
+      avatarStorageKey: null,
+      passwordChangedAt: payload.passwordChangedAt
+        ? new Date(payload.passwordChangedAt)
+        : null,
+      createdAt: new Date(payload.createdAt),
+      updatedAt: new Date(payload.updatedAt),
+      team: null,
+    },
+    expiresAt,
+    rememberMe: payload.rememberMe,
+  } satisfies SessionClaims;
+}
+
+export async function getCurrentSession() {
+  const claims = await readSessionClaims();
+
+  if (!claims) {
+    return null;
+  }
+
+  const currentUser = await findActiveSessionUserById(claims.user.id);
 
   if (!currentUser) {
     return null;
@@ -175,14 +223,18 @@ export async function getCurrentSession() {
     ? currentUser.passwordChangedAt.toISOString()
     : null;
 
-  if (payload.passwordChangedAt !== currentPasswordChangedAt) {
+  const claimPasswordChangedAt = claims.user.passwordChangedAt
+    ? claims.user.passwordChangedAt.toISOString()
+    : null;
+
+  if (claimPasswordChangedAt !== currentPasswordChangedAt) {
     return null;
   }
 
   return {
     user: currentUser,
-    expiresAt,
-    rememberMe: payload.rememberMe,
+    expiresAt: claims.expiresAt,
+    rememberMe: claims.rememberMe,
   } satisfies CurrentSession;
 }
 

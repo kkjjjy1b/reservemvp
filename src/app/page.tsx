@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { TimelinePage } from "@/components/timeline/timeline-page";
-import { getCurrentSession } from "@/lib/auth/session";
+import { readSessionClaims } from "@/lib/auth/session";
 import { getKstDateKey, isValidDateKey } from "@/lib/reservations/datetime";
 import {
   getActiveMeetingRooms,
@@ -21,7 +21,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const params = searchParams ? await searchParams : undefined;
   const selectedDate =
     params?.date && isValidDateKey(params.date) ? params.date : getKstDateKey(new Date());
-  const session = await getCurrentSession();
+  const session = await readSessionClaims();
 
   if (!session) {
     redirect("/login");

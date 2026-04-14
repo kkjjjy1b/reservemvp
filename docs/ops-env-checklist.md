@@ -11,7 +11,7 @@
 - `RESEND_API_KEY`: 준비됨
 - `RESEND_FROM_EMAIL`: 미설정
 - `RESERVATION_REPLY_TO_EMAIL`: 미설정
-- `APP_URL`: 준비됨 (`https://reservemvp.vercel.app`)
+- `APP_URL`: 운영 도메인으로 맞춰야 함
 
 ## 필수 여부 정리
 - `DATABASE_URL`: 필수
@@ -24,7 +24,7 @@
 
 ## 현재 결정 상태
 - 운영에서 프로필 이미지 업로드는 사용한다.
-- 운영 URL은 당분간 `https://reservemvp.vercel.app`를 사용한다.
+- 운영 URL은 현재 연결된 커스텀 도메인 기준으로 맞춘다.
 - 예약 참여자 메일 발송은 커스텀 도메인 확보 전까지 보류한다.
 
 ## 보안 취급 원칙

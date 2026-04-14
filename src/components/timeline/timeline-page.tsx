@@ -39,6 +39,7 @@ type SlotDescriptor = {
 type TimelineRoomColumnProps = {
   room: TimelineRoom;
   date: string;
+  now: Date;
   slots: SlotDescriptor[];
   onSlotClick: (selection: EmptySlotSelection) => void;
   onReservationClick: (
@@ -78,7 +79,8 @@ export function TimelinePage({
   const [desktopHeaderHeight, setDesktopHeaderHeight] = useState(0);
 
   const slots = buildSlots(timelineData?.timeline.slotCount ?? 36);
-  const isTodayView = isToday(currentDate);
+  const renderedDate = timelineData?.date ?? currentDate;
+  const isTodayView = isToday(renderedDate);
   const currentLineOffsetPx = useMemo(() => {
     if (!timelineData || !isTodayView || !hasMounted) {
       return null;
@@ -185,13 +187,14 @@ export function TimelinePage({
       return;
     }
 
-    if (currentDate === selectedDate && initialTimelineData) {
-      return;
-    }
-
     let cancelled = false;
 
     async function loadTimeline() {
+      if (timelineData?.date === currentDate) {
+        setIsTimelineLoading(false);
+        return;
+      }
+
       const shouldShowRoomShells =
         timelineData !== null && timelineData.date !== currentDate;
 
@@ -247,12 +250,13 @@ export function TimelinePage({
     return () => {
       cancelled = true;
     };
-  }, [currentDate, initialTimelineData, isAuthenticated, selectedDate]);
+  }, [currentDate, isAuthenticated, timelineData]);
 
   function updateDate(nextDate: string) {
     setSelectedSlot(null);
     setSelectedReservationId(null);
     setSelectedReservationDetail(null);
+    setNow(new Date());
     setCurrentDate(nextDate);
     window.history.replaceState({}, "", `/?date=${nextDate}`);
   }
@@ -351,7 +355,7 @@ export function TimelinePage({
   }
 
   const visibleRooms = timelineData?.rooms ?? [];
-  const activeDate = timelineData?.date ?? currentDate;
+  const activeDate = renderedDate;
   const selectedMobileRoom =
     visibleRooms.find((room) => room.id === selectedMobileRoomId) ?? visibleRooms[0] ?? null;
 
@@ -634,6 +638,7 @@ export function TimelinePage({
                         <TimelineRoomColumn
                           room={selectedMobileRoom}
                           date={activeDate}
+                          now={now}
                           slots={slots}
                           onSlotClick={(slot) => {
                             setSelectedReservationId(null);
@@ -757,7 +762,8 @@ export function TimelinePage({
                           <TimelineRoomColumn
                             key={room.id}
                             room={room}
-                            date={timelineData.date}
+                            date={activeDate}
+                            now={now}
                             slots={slots}
                             onSlotClick={(slot) => {
                               setSelectedReservationId(null);
@@ -850,6 +856,7 @@ function toTimelineReservation(reservation: MutationReservation, currentUserName
 function TimelineRoomColumn({
   room,
   date,
+  now,
   slots,
   onSlotClick,
   onReservationClick,
@@ -869,7 +876,7 @@ function TimelineRoomColumn({
   return (
     <div className="relative border-r border-black/10 last:border-r-0">
       {slots.map((slot) => {
-        const isPolicyBlocked = !isSelectableStartSlot(date, slot.time);
+        const isPolicyBlocked = !isSelectableStartSlot(date, slot.time, now);
         const isBlocked = blockedSlots.has(slot.index) || isPolicyBlocked;
 
         return (

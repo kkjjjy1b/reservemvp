@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 
 import { LoginForm } from "@/components/auth/login-form";
-import { getCurrentSession } from "@/lib/auth/session";
+import { readSessionClaims } from "@/lib/auth/session";
 
 export const preferredRegion = "sin1";
 
 export default async function LoginPage() {
-  const session = await getCurrentSession();
+  const session = await readSessionClaims();
 
   if (session) {
     redirect("/");

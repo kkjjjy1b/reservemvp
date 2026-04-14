@@ -8,6 +8,30 @@
 - 세부 구현을 모두 나열하기보다, 다음 환경에서 바로 이어서 일할 수 있는 수준으로 압축한다.
 - 제품 정책/DB/API 계약 자체가 바뀌면 이 문서만이 아니라 `docs/change-log.md`에도 함께 반영한다.
 
+## 2026-04-14 - domain alignment + login path hardening + timeline today sync
+### 목표
+- 운영 도메인 변경 영향 범위를 정리하고, 로그인 첫 진입 체감과 오늘 날짜 타임라인 동기화 버그를 같이 안정화한다.
+
+### 진행한 것
+- 운영 도메인 변경에 맞춰 `.env.example`와 운영 문서에서 특정 `vercel.app` URL 의존을 줄였다.
+- 운영 Vercel 프로젝트 `reservemvp`의 실제 커스텀 도메인이 `ttalkakroom.cloud`인지 확인했다.
+- 운영 production env에 `APP_URL`을 `https://ttalkakroom.cloud`로 설정했다.
+- 읽기 전용 페이지 가드에서 서명 쿠키 claim만 읽는 경량 세션 경로를 추가해 `/login`, `/` 첫 진입의 DB 재조회 1회를 줄였다.
+- 회의실 목록 조회를 시간 기반 캐시로 감싸서 홈 첫 진입의 고정 데이터 쿼리 비용을 줄였다.
+- 전역 `loading.tsx`를 추가해 로그인 직후 빈 화면 대신 즉시 로딩 shell이 보이도록 했다.
+- 타임라인에서 `다음 날 -> 오늘` 복귀 시 `currentDate`와 실제 렌더 데이터 날짜가 어긋나던 문제를 수정했다.
+- 슬롯 selectable 판정과 현재 시각선이 같은 `now/date` 기준을 보도록 맞췄다.
+- `npm run build`까지 다시 통과시켰다.
+
+### 남은 것
+- 운영 배포가 반영된 뒤 새 브라우저 기준 첫 로그인 체감과 `다음 날 -> 오늘` 재현 케이스를 실제 브라우저에서 다시 확인해야 한다.
+- 메일 발송 기능을 켤 계획이면 `APP_URL` 외에 `RESEND_FROM_EMAIL` 설정과 도메인 검증 상태를 같이 점검해야 한다.
+
+### 꼭 지켜야 하는 원칙
+- 운영 도메인이 바뀌면 인증 경로보다 먼저 `APP_URL`과 운영 문서의 URL 기준을 맞춘다.
+- 읽기 페이지 성능 최적화와 민감 API 검증은 분리한다.
+- 타임라인의 현재 시각선, today 판정, 슬롯 차단 여부는 항상 같은 날짜 기준을 보도록 유지한다.
+
 ## 2026-04-09 - recurring reservation + timeline compact polish
 ### 목표
 - 정기 회의용 평일 반복 예약을 MVP 범위 안에서 추가한다.
@@ -45,7 +69,7 @@
 ### 진행한 것
 - 운영 환경변수 체크리스트 문서를 추가했다.
 - `DATABASE_URL`, `SESSION_SECRET`, `BLOB_READ_WRITE_TOKEN`, `RESEND_API_KEY`, `APP_URL` 준비 상태를 확인했다.
-- `APP_URL`은 당분간 `https://reservemvp.vercel.app` 기준으로 유지하기로 정리했다.
+- `APP_URL`은 현재 연결된 운영 도메인 기준으로 유지하기로 정리했다.
 - 커스텀 도메인 확보 전까지 `RESEND_FROM_EMAIL`, `RESERVATION_REPLY_TO_EMAIL` 없이 메일 발송 기능을 보류하기로 결정했다.
 - 배포 handoff 문서에 현재 Git 연결 상태와 메일 보류 상황을 반영했다.
 
